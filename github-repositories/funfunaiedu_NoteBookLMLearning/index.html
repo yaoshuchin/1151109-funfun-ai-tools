@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotebookLM 在國中小教育現場的應用</title>
+    <style>
+        :root {
+            --primary-color: #a1887f; /* 捻色調 / Muted Terracotta */
+            --correct-color: #5a9c6c; /* 柔和綠 / Muted Green */
+            --incorrect-color: #c96567; /* 柔和紅 / Muted Red */
+            --secondary-color: #d2b48c; /* 淺咖啡 / Tan */
+            --bg-color: #f9f5f0; /* 米色背景 / Beige Background */
+            --glass-bg: rgba(243, 240, 233, 0.65); /* 玻璃背景 */
+            --text-color: #4a4a4a; /* 深灰色文字 */
+            --heading-color: #6d4c41; /* 深咖啡色標題 */
+        }
+        
+        html {
+            font-size: 110%; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        #ebook-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 95vh;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            display: flex;
+            overflow: hidden;
+        }
+
+        #toc-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0px 15px rgba(0,0,0,0.05);
+        }
+
+        #toc-sidebar h2 {
+            font-size: 1.5rem;
+            color: var(--heading-color);
+            border-bottom: 2px solid rgba(161, 136, 127, 0.2);
+            padding-bottom: 1rem;
+            margin: 0 0 1.5rem 0;
+            text-align: left;
+        }
+
+        #toc-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        #toc-list li {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        #toc-list li:hover {
+            background-color: rgba(255,255,255, 0.4);
+            color: var(--heading-color);
+        }
+
+        #toc-list li.active {
+            background-color: #fff;
+            color: var(--heading-color);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        #main-content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #ebook-header {
+            background-color: #fff;
+            color: var(--heading-color);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        #ebook-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #page-content {
+            flex-grow: 1;
+            padding: 1.5rem 3rem;
+            position: relative;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            animation: fadeIn 0.5s;
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .page-icon { width: 70px; height: 70px; margin: 0 auto 1rem; display: block; }
+        .content-layout { display: flex; align-items: center; gap: 2rem; }
+        .content-text { flex: 1; }
+        .content-image { width: 120px; flex-shrink: 0; }
+        .content-image svg { width: 100%; height: auto; }
+
+        h2, h3 {
+            text-align: center;
+            color: var(--heading-color);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.8rem;
+            margin: 0 0 1.5rem 0;
+        }
+        h3 { text-align: left; font-size: 1.4rem; margin-top: 1rem; }
+        h3.no-margin-top { margin-top: 0; }
+        p, ul, ol { font-size: 1.1rem; line-height: 1.9; }
+        li { margin-bottom: 0.8rem; }
+        ol li { margin-bottom: 1rem; }
+        
+        .highlight-text {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        #navigation {
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #navigation button {
+            background-color: var(--correct-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #navigation button:disabled { background-color: #d8d8d8; cursor: not-allowed; }
+        #navigation button:not(:disabled):hover { opacity: 0.9; }
+        #page-indicator { font-size: 1rem; font-weight: bold; color: #475569; min-width: 100px; }
+        .toc-button { display: none; }
+
+        .quiz-container { text-align: center; width: 100%; }
+        #quiz-progress-bar-container { width: 100%; background-color: #eee; border-radius: 5px; margin-bottom: 1.5rem; }
+        #quiz-progress-bar { height: 10px; width: 0%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.3s; }
+        .quiz-question p { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; text-align: left; }
+        .answer-options { display: flex; flex-direction: column; gap: 0.7rem; }
+        .answer-btn { width: 100%; padding: 0.8rem; border: 2px solid #cbd5e1; background-color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 1rem; }
+        .answer-btn:hover:not(:disabled) { background-color: #f0f3f8; border-color: var(--secondary-color); }
+        .answer-btn.correct { background-color: #dcfce7; border-color: var(--correct-color); color: #166534; font-weight: bold; }
+        .answer-btn.incorrect { background-color: #fee2e2; border-color: var(--incorrect-color); color: #991b1b; }
+        .answer-btn:disabled { cursor: not-allowed; opacity: 0.9; }
+        #quiz-feedback { margin-top: 1rem; font-weight: bold; height: 2rem; }
+        #quiz-next-btn { background-color: var(--secondary-color); padding: 0.8rem 1.8rem; font-size: 1.1rem; visibility: hidden; }
+        #quiz-result { font-size: 1.8rem; font-weight: bold; color: var(--heading-color); }
+
+        @media (max-width: 1024px) {
+            #ebook-container {
+                flex-direction: column;
+                height: 98vh;
+            }
+            #toc-sidebar {
+                width: auto;
+                height: auto;
+                flex-shrink: 1;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            #toc-sidebar h2 { display: none; }
+            #toc-list {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 1rem;
+                scrollbar-width: thin;
+            }
+            #toc-list li {
+                flex-shrink: 0;
+                margin-right: 0.5rem;
+                margin-bottom: 0;
+            }
+            #page-content { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 768px) {
+            html { font-size: 100%; }
+            .content-layout { flex-direction: column; }
+            .content-image { width: 100px; margin-bottom: 1rem; }
+            #navigation button { padding: 0.6rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ebook-container">
+        <div id="toc-sidebar">
+            <h2>目錄</h2>
+            <ul id="toc-list"></ul>
+        </div>
+        <div id="main-content-area">
+            <div id="ebook-header">
+                <h1>NotebookLM 在國中小教育現場的應用</h1>
+            </div>
+            <div id="page-content">
+                <div class="page active">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                    <h2>NotebookLM 基本介紹</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>它是什麼？能做什麼？</h3>
+                            <p>NotebookLM 是 Google 推出的一款 AI 筆記和研究助理工具。使用者可以上傳自己的文件資料 (如 PDF、網頁、YouTube 影片)，讓 AI 幫助分析內容、產生摘要、回答問題。</p>
+                            <p>它的特色是 <strong class="highlight-text">只根據使用者上傳的資料進行處理</strong>，並附上清楚的引用來源，極大降低 AI 憑空亂猜（幻覺）的風險。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>與 ChatGPT 的差異</h3>
+                    <p>NotebookLM 與 ChatGPT 都是強大的 AI，但在教育應用上有所不同：</p>
+                    <ul>
+                        <li><b>NotebookLM</b>：更像一個 <strong class="highlight-text">能讀懂你教材的數位筆記本和教學幫手</strong>。它的回答有憑有據，緊扣你提供的資料，適合需要精確性的課堂學習。</li>
+                        <br>
+                        <li><b>ChatGPT</b>：更像一個 <strong class="highlight-text">知識淵博的聊天夥伴</strong>。它擅長開放式對談和延伸知識，適合需要課外延伸或激發靈感時使用。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    <h2>核心功能深度解析</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>語音摘要 (Audio Overview)</h3>
+                            <p>這項功能可以將上傳的文字資料轉換成生動的 <strong class="highlight-text">對話式語音</strong>，彷彿兩位主持人在主持一段 Podcast 節目。</p>
+                            <p>老師可以快速生成課前預習或課後複習的語音教材，激發學生學習動機。</p>
+                        </div>
+                         <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>語音摘要的多元風格</h3>
+                    <p>NotebookLM 提供了多種語音風格模式，讓教學應用更靈活：</p>
+                    <ul>
+                        <li><strong class="highlight-text">簡報摘要</strong>：1-2分鐘講完精華，適合課前提示或小結。</li>
+                        <li><strong class="highlight-text">評論講解</strong>：在語音中加入 AI 的點評與建議，彷彿專家批註。</li>
+                        <li><strong class="highlight-text">觀點辯論</strong>：讓兩個 AI 聲音站在正反立場進行辯論，非常適合社會科或自然科的議題討論。</li>
+                    </ul>
+                </div>
+                 <div class="page">
+                    <h3>影片摘要 (Video Overview)</h3>
+                     <div class="content-layout">
+                        <div class="content-text">
+                            <p>這項功能可以將資料自動轉換為 <strong class="highlight-text">帶旁白解說的簡報影片</strong>。</p>
+                            <p>NotebookLM 會擷取資料重點，並搭配強調重點的視覺效果（如標記關鍵字、圖表），生成一段圖文並茂的引導影片。</p>
+                            <p>老師不再需要自己剪片或做投影片，就能快速製作出吸引學生注意力的課程開場影片。</p>
+                        </div>
+                         <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M12 5.9c1.16 0 2.1.94 2.1 2.1s-.94 2.1-2.1 2.1S9.9 9.16 9.9 8s.94-2.1 2.1-2.1m0 9c2.97 0 6.1 1.46 6.1 2.1v1.1H5.9V17c0-.64 3.13-2.1 6.1-2.1M12 4C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 9c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4z"/></svg>
+                    <h2>各功能的雙面應用</h2>
+                    <h3>資料整理問答</h3>
+                    <ul>
+                        <li><b>教師使用</b>：在備課時上傳教材，快速抓取重點、確認自己對內容的掌握，或設計討論題。</li>
+                        <br>
+                        <li><b>學生使用</b>：就像一位 <strong class="highlight-text">只讀課本的家教</strong>。上傳講義或筆記，進行互動式問答，得到的答案精確且有依據。</li>
+                    </ul>
+                </div>
+                 <div class="page">
+                    <h3>心智圖與學習卡的應用</h3>
+                    <ul>
+                        <li><b>教師使用</b>：將整章或多份資料生成 <strong class="highlight-text">心智圖</strong>，宏觀地檢視課程架構。利用 <strong class="highlight-text">學習卡</strong> 和 <strong class="highlight-text">測驗</strong> 功能，快速生成課後練習或小考題目。</li>
+                        <br>
+                        <li><b>學生使用</b>：用 **心智圖** 將雜亂的資訊條理化，方便複習與記憶。用 **學習卡** 和 **測驗** 功能進行自我檢測，找出不熟練的知識點。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M5 4v2h14V4H5zm0 10h4v6h6v-6h4l-7-7-7 7z"/></svg>
+                    <h2>核心科目應用範例</h2>
+                    <h3>國語科</h3>
+                    <p>NotebookLM 能成為語文老師的得力幫手。</p>
+                    <ul>
+                        <li><b>閱讀教學</b>：快速生成文言文或深奧文章的「說課大綱」和「段落摘要」。</li>
+                        <li><b>引起動機</b>：將課文生成「觀點辯論音頻」或「延伸閱讀影片」，豐富課堂活動。</li>
+                        <li><b>寫作教學</b>：分析全班作文，快速整理出「常用論點」或「優美佳句」。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>數學科</h3>
+                    <p>雖然以數字為主，但 NotebookLM 仍可輔助數學教學。</p>
+                    <ul>
+                        <li><b>教材分析</b>：將整本試卷解析上傳，生成「考點心智圖」，找出高頻考點。</li>
+                        <li><b>解題輔助</b>：協助簡化應用題的冗長敘述，提取解題的關鍵資訊。</li>
+                        <li><b>概念練習</b>：自動生成「名詞解釋」或「定理判斷」的學習卡和選擇題。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>社會科</h3>
+                    <p>內容龐雜的社會科是 NotebookLM 大顯身手的舞台。</p>
+                    <ul>
+                        <li><b>歷史科</b>：自動將課文生成包含「起因、經過、結果」的摘要，或製作出「歷史事件時間軸」。</li>
+                        <li><b>地理科</b>：快速彙整地名、概念與數據，例如整理成「國家-首都」或「氣候特徵」列表。</li>
+                        <li><b>公民科</b>：用白話文歸納艱澀的法律條文，或比較不同文章對同一社會議題的觀點。</li>
+                    </ul>
+                </div>
+                 <div class="page">
+                    <h3>自然科</h3>
+                    <p>自然科涉及概念、實驗和數據，NotebookLM 都能提供幫助。</p>
+                    <ul>
+                        <li><b>知識整理</b>：快速總結單元的重要概念和定律，例如生成「牛頓運動定律」的摘要筆記。</li>
+                        <li><b>實驗報告</b>：協助整理實驗步驟、歸納數據和結論，提供報告寫作的框架。</li>
+                        <li><b>自學輔助</b>：當學生對課本內容有疑惑時，AI 能根據課本內容提供解釋。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="var(--primary-color)" d="M19.4 7.34L16.66 4.6l-9.51 9.51 2.45 2.45.29.3.29.29 2.74 2.74 9.51-9.51-2.74-2.74zM4 20h16v2H4v-2z"/></svg>
+                    <h2>詳細操作指南</h2>
+                    <h3 class="no-margin-top">基礎操作：上傳資料與問答</h3>
+                    <ol>
+                        <li><b>登入與新增</b>：使用 Google 帳號登入 NotebookLM。點擊左上角「新增」建立一個新筆記本。</li>
+                        <li><b>上傳來源</b>：在左側「來源」面板點擊「+」，選擇上傳檔案（PDF、Google 文件）、貼上網址（網站、YouTube 影片）等。</li>
+                        <li><b>自動導覽</b>：上傳成功後，AI 會自動在右側生成「筆記本導覽」，包含摘要與建議問題。</li>
+                        <li><b>開始問答</b>：在最下方的對話框中，直接輸入你想問的問題。</li>
+                    </ol>
+                </div>
+                <div class="page">
+                     <h3>操作指南：語音摘要</h3>
+                     <div class="content-layout">
+                        <div class="content-text">
+                            <ol>
+                                <li><b>選取來源</b>：在左側「來源」面板，勾選你想要生成語音的一或多個文件。</li>
+                                <li><b>點擊功能</b>：在右側面板下方，找到並點擊「語音摘要」按鈕。</li>
+                                <li><b>自訂設定</b>：點擊按鈕旁的設定圖示，你可以調整語言、長度以及<strong class="highlight-text">風格</strong>（如：觀點辯論）。</li>
+                                <li><b>生成與使用</b>：等待幾分鐘處理完成後，即可直接播放、下載 M4A 音檔。</li>
+                            </ol>
+                        </div>
+                         <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                 <div class="page">
+                     <h3>處理無字幕媒體的技巧</h3>
+                      <p>NotebookLM 需要<strong class="highlight-text">文字</strong>才能分析。如果您有影片或錄音檔沒有文字稿，建議：</p>
+                      <ol>
+                        <li><b>上傳至 YouTube</b>：將影片設為「不公開」並上傳，利用 YouTube 的免費自動字幕功能生成文字稿。</li>
+                        <li><b>使用轉錄工具</b>：使用線上免費或付費的語音轉文字工具，將音訊檔轉為文字。</li>
+                        <li><b>提供文字稿</b>：將處理好的文字稿或帶有字幕的 YouTube 連結，作為來源上傳至 NotebookLM 即可。</li>
+                      </ol>
+                </div>
+                <div class="page">
+                    <h2>最終學習評量</h2>
+                    <div class="quiz-container">
+                        <div id="quiz-progress-bar-container"><div id="quiz-progress-bar"></div></div>
+                        <div id="quiz-question-area"></div>
+                        <div id="quiz-feedback"></div>
+                        <button id="quiz-next-btn" onclick="nextQuestion()">下一題</button>
+                        <div id="quiz-result-area" style="display: none;">
+                            <div id="quiz-result"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div id="navigation">
+                <button id="prev-btn" onclick="changePage(-1)">上一頁</button>
+                <span id="page-indicator"></span>
+                <button class="toc-button" onclick="goToPage(1)">回目錄</button>
+                <button id="next-btn" onclick="changePage(1)">下一頁</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chapterMapping = [
+            { name: "NotebookLM 基本介紹", startPage: 1, endPage: 2 },
+            { name: "核心功能深度解析", startPage: 3, endPage: 5 },
+            { name: "各功能的雙面應用", startPage: 6, endPage: 7 },
+            { name: "核心科目應用範例", startPage: 8, endPage: 11 },
+            { name: "詳細操作指南", startPage: 12, endPage: 14 },
+            { name: "最終學習評量", startPage: 15, endPage: 15 }
+        ];
+
+        let currentPageIndex = 1;
+        const pages = document.querySelectorAll('#page-content .page');
+        const totalPages = pages.length;
+        const pageIndicator = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocList = document.getElementById('toc-list');
+
+        function buildTOC() {
+            tocList.innerHTML = '';
+            chapterMapping.forEach((chapter, index) => {
+                const li = document.createElement('li');
+                li.textContent = chapter.name;
+                li.onclick = () => goToPage(chapter.startPage);
+                li.dataset.chapterIndex = index;
+                tocList.appendChild(li);
+            });
+        }
+        
+        function updateActiveTocItem() {
+            const tocItems = document.querySelectorAll('#toc-list li');
+            let activeChapterIndex = -1;
+            
+            chapterMapping.forEach((chapter, index) => {
+                if (currentPageIndex >= chapter.startPage && currentPageIndex <= chapter.endPage) {
+                    activeChapterIndex = index;
+                }
+            });
+
+            tocItems.forEach((item, index) => {
+                item.classList.toggle('active', index === activeChapterIndex);
+            });
+        }
+
+        function showPage(index) {
+            pages.forEach((page, i) => page.classList.toggle('active', i === (index -1)));
+            updateNavigation();
+            updateActiveTocItem();
+            if (index === chapterMapping[chapterMapping.length -1].startPage) {
+                startQuiz();
+            }
+        }
+
+        function updateNavigation() {
+            pageIndicator.textContent = `第 ${currentPageIndex} / ${totalPages} 頁`;
+            prevBtn.disabled = currentPageIndex === 1;
+            nextBtn.disabled = currentPageIndex === totalPages;
+        }
+
+        function changePage(direction) {
+            const newIndex = currentPageIndex + direction;
+            if (newIndex >= 1 && newIndex <= totalPages) {
+                currentPageIndex = newIndex;
+                showPage(newIndex);
+            }
+        }
+        
+        function goToPage(pageNumber) {
+            currentPageIndex = pageNumber;
+            showPage(pageNumber);
+        }
+
+        const quizData = [
+            { question: "1. NotebookLM 和 ChatGPT 最大的不同點是什麼？", options: ["NotebookLM 比較聰明", "NotebookLM 只根據你上傳的資料回答，且會附上來源", "ChatGPT 只能用英文"], correct: 1 },
+            { question: "2. 老師想把一篇關於環保議題的課文，變成一段正反方的辯論錄音，應該使用語音摘要的哪種風格？", options: ["簡報摘要", "評論講解", "觀點辯論"], correct: 2 },
+            { question: "3. 如果你上傳一段沒有字幕的教學影片到 NotebookLM，會發生什麼事？", options: ["AI 會自動聽懂影片內容並生成摘要", "AI 無法處理，因為它需要文字稿或字幕才能分析", "AI 會幫影片自動加上字幕"], correct: 1 },
+            { question: "4. 對於內容龐雜的社會科，NotebookLM 的哪項功能特別有助於整理歷史事件脈絡？", options: ["自動生成時間軸", "自動生成影片", "自動翻譯"], correct: 0 },
+            { question: "5. 當學生問了一個超出你上傳資料範圍的問題，NotebookLM 會如何回應？", options: ["從網路上搜尋答案", "誠實地回答「來源沒有提及」", "隨便猜一個答案"], correct: 1 },
+            { question: "6. 老師想快速出幾題關於課文內容的選擇題給學生練習，應該使用哪個功能？", options: ["學習卡與測驗", "語音摘要", "筆記本導覽"], correct: 0 },
+            { question: "7. 使用 NotebookLM 的第一個步驟通常是什麼？", options: ["直接開始和 AI 聊天", "建立一個新筆記本並上傳資料來源", "設計心智圖"], correct: 1 },
+            { question: "8. 數學老師想整理出整學期考卷的常考重點，最適合用哪個功能來宏觀分析？", options: ["考點心智圖", "影片摘要", "公式學習卡"], correct: 0 },
+            { question: "9. 老師想讓聽覺型的學生更容易吸收英文課文，最好的方法是？", options: ["要求他們抄寫十遍", "將課文生成中文語音摘要，讓他們先理解大意", "直接跳過不教"], correct: 1 },
+            { question: "10. 學生使用 NotebookLM 自學時，最大的好處是什麼？", options: ["可以完全不用讀課本", "可以得到有根據的解答，避免被網路錯誤資訊誤導", "AI 會直接幫忙寫完所有作業"], correct: 1 }
+        ];
+        
+        let currentQuestionIndex = 0, score = 0, quizActive = false;
+
+        function startQuiz() {
+            if (quizActive) return;
+            quizActive = true;
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('quiz-question-area').style.display = 'block';
+            document.getElementById('quiz-result-area').style.display = 'none';
+            document.getElementById('quiz-feedback').style.display = 'block';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = quizData[currentQuestionIndex];
+            const questionArea = document.getElementById('quiz-question-area');
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+            document.getElementById('quiz-feedback').innerHTML = '';
+            
+            let optionsHtml = questionData.options.map((option, i) => 
+                `<button class="answer-btn" onclick="checkAnswer(${i}, this)">${option}</button>`
+            ).join('');
+            
+            questionArea.innerHTML = `<div class="quiz-question"><p>${questionData.question}</p><div class="answer-options">${optionsHtml}</div></div>`;
+        }
+
+        function checkAnswer(selectedIndex, button) {
+            const questionData = quizData[currentQuestionIndex];
+            const optionsContainer = button.parentElement;
+            const feedbackEl = document.getElementById('quiz-feedback');
+            
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === questionData.correct) {
+                button.classList.add('correct');
+                feedbackEl.textContent = '答對了！';
+                feedbackEl.style.color = 'var(--correct-color)';
+                score++;
+            } else {
+                button.classList.add('incorrect');
+                optionsContainer.children[questionData.correct].classList.add('correct');
+                feedbackEl.textContent = '答錯了！';
+                feedbackEl.style.color = 'var(--incorrect-color)';
+            }
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.textContent = (currentQuestionIndex === quizData.length - 1) ? "顯示總分" : "下一題";
+            nextBtn.style.visibility = 'visible';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                displayQuestion();
+            } else {
+                showFinalScore();
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('quiz-question-area').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-feedback').style.display = 'none';
+            document.getElementById('quiz-progress-bar').style.width = '100%';
+
+            const resultArea = document.getElementById('quiz-result-area');
+            document.getElementById('quiz-result').textContent = `你的總分是：${score} / ${quizData.length} 分！`;
+            resultArea.style.display = 'block';
+            quizActive = false;
+        }
+        
+        // Initial setup
+        buildTOC();
+        showPage(currentPageIndex);
+    </script>
+
+</body>
+</html>

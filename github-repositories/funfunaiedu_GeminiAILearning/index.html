@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI 在國中小教育現場的應用方式</title>
+    <style>
+        :root {
+            --primary-color: #a1887f; /* 捻色調 / Muted Terracotta */
+            --correct-color: #5a9c6c; /* 柔和綠 / Muted Green */
+            --incorrect-color: #c96567; /* 柔和紅 / Muted Red */
+            --secondary-color: #d2b48c; /* 淺咖啡 / Tan */
+            --bg-color: #f9f5f0; /* 米色背景 / Beige Background */
+            --glass-bg: rgba(243, 240, 233, 0.65); /* 玻璃背景 */
+            --text-color: #4a4a4a; /* 深灰色文字 */
+            --heading-color: #6d4c41; /* 深咖啡色標題 */
+        }
+        
+        html {
+            font-size: 110%; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        #ebook-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 95vh;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            display: flex;
+            overflow: hidden;
+        }
+
+        #toc-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0px 15px rgba(0,0,0,0.05);
+        }
+
+        #toc-sidebar h2 {
+            font-size: 1.5rem;
+            color: var(--heading-color);
+            border-bottom: 2px solid rgba(161, 136, 127, 0.2);
+            padding-bottom: 1rem;
+            margin: 0 0 1.5rem 0;
+            text-align: left;
+        }
+
+        #toc-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        #toc-list li {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        #toc-list li:hover {
+            background-color: rgba(255,255,255, 0.4);
+            color: var(--heading-color);
+        }
+
+        #toc-list li.active {
+            background-color: #fff;
+            color: var(--heading-color);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        #main-content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #ebook-header {
+            background-color: #fff;
+            color: var(--heading-color);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        #ebook-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #page-content {
+            flex-grow: 1;
+            padding: 1.5rem 3rem;
+            position: relative;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            animation: fadeIn 0.5s;
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .page-icon { width: 70px; height: 70px; margin: 0 auto 1rem; display: block; }
+        .content-layout { display: flex; align-items: center; gap: 2rem; }
+        .content-text { flex: 1; }
+        .content-image { width: 120px; flex-shrink: 0; }
+        .content-image svg { width: 100%; height: auto; }
+
+        h2, h3 {
+            text-align: center;
+            color: var(--heading-color);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.8rem;
+            margin: 0 0 1.5rem 0;
+        }
+        h3 { text-align: left; font-size: 1.4rem; margin-top: 1rem; }
+        h3.no-margin-top { margin-top: 0; }
+        p, ul, ol { font-size: 1.1rem; line-height: 1.9; }
+        li { margin-bottom: 0.8rem; }
+        ol li { margin-bottom: 1rem; }
+        
+        .highlight-text {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        #navigation {
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #navigation button {
+            background-color: var(--correct-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #navigation button:disabled { background-color: #d8d8d8; cursor: not-allowed; }
+        #navigation button:not(:disabled):hover { opacity: 0.9; }
+        #page-indicator { font-size: 1rem; font-weight: bold; color: #475569; min-width: 100px; }
+        .toc-button { display: none; }
+
+        .quiz-container { text-align: center; width: 100%; }
+        #quiz-progress-bar-container { width: 100%; background-color: #eee; border-radius: 5px; margin-bottom: 1.5rem; }
+        #quiz-progress-bar { height: 10px; width: 0%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.3s; }
+        .quiz-question p { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; text-align: left; }
+        .answer-options { display: flex; flex-direction: column; gap: 0.7rem; }
+        .answer-btn { width: 100%; padding: 0.8rem; border: 2px solid #cbd5e1; background-color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 1rem; }
+        .answer-btn:hover:not(:disabled) { background-color: #f0f3f8; border-color: var(--secondary-color); }
+        .answer-btn.correct { background-color: #dcfce7; border-color: var(--correct-color); color: #166534; font-weight: bold; }
+        .answer-btn.incorrect { background-color: #fee2e2; border-color: var(--incorrect-color); color: #991b1b; }
+        .answer-btn:disabled { cursor: not-allowed; opacity: 0.9; }
+        #quiz-feedback { margin-top: 1rem; font-weight: bold; height: 2rem; }
+        #quiz-next-btn { background-color: var(--secondary-color); padding: 0.8rem 1.8rem; font-size: 1.1rem; visibility: hidden; }
+        #quiz-result { font-size: 1.8rem; font-weight: bold; color: var(--heading-color); }
+
+        @media (max-width: 1024px) {
+            #ebook-container {
+                flex-direction: column;
+                height: 98vh;
+            }
+            #toc-sidebar {
+                width: auto;
+                height: auto;
+                flex-shrink: 1;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            #toc-sidebar h2 { display: none; }
+            #toc-list {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 1rem; /* For scrollbar */
+                scrollbar-width: thin;
+            }
+            #toc-list li {
+                flex-shrink: 0;
+                margin-right: 0.5rem;
+                margin-bottom: 0;
+            }
+            #page-content { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 768px) {
+            html { font-size: 100%; }
+            .content-layout { flex-direction: column; }
+            .content-image { width: 100px; margin-bottom: 1rem; }
+            #navigation button { padding: 0.6rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ebook-container">
+        <div id="toc-sidebar">
+            <h2>目錄</h2>
+            <ul id="toc-list"></ul>
+        </div>
+        <div id="main-content-area">
+            <div id="ebook-header">
+                <h1>Gemini AI 在國中小教育現場的應用方式</h1>
+            </div>
+            <div id="page-content">
+                <div class="page active">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm2-4h-2V7h2v6z" fill="var(--primary-color)"/></svg>
+                    <h2>Gemini AI 簡介與特色</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>多模態能力與生態整合</h3>
+                            <p>Gemini 是 Google 開發的<strong class="highlight-text">多模態</strong>生成式 AI，能同時理解文字、圖片、語音等多種形式的資料。</p>
+                            <p>它與 Google Workspace (文件、簡報、表單等) 高度整合，讓師生可以在熟悉的工具中直接使用 AI 輔助，這是其最大優勢之一。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>內建深度研究與教育版保障</h3>
+                     <ul>
+                        <li><b>深度研究模式</b>：可自動瀏覽多個網站並整合分析資訊，將結果整理成完整報告，非常適合用於資料蒐集與教學資源查找。</li>
+                        <br>
+                        <li><b>教育版帳戶保障</b>：專為教育環境推出的 Gemini for Education 帳戶具有隱私與資料安全保障，輸入的資料不會用於訓練 AI 模型或廣告。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="var(--primary-color)"/></svg>
+                    <h2>教師應用方式與效益</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>1. 備課與主題教學設計</h3>
+                            <p>Gemini 被譽為教師的<strong class="highlight-text">「備課神器」</strong>。老師只需輸入簡單指令，如：「幫我設計一堂關於『水循環』的自然科教案」，AI 就能快速生成包含學習目標、活動流程與評量方式的完整教案範本。</p>
+                        </div>
+                        <div class="content-image">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                     <h3>2. 出題與學習單製作</h3>
+                     <p>命題是教師工作的另一項耗時任務。Gemini 可以透過簡單描述快速產生各科的題目或學習單初稿。</p>
+                     <p>例如，老師可要求：「請幫我出5題關於臺灣地形的社會科測驗題」，AI 會立即生成包含選擇題與簡答題的題組，老師再稍作調整即可使用，大幅節省命題時間。</p>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="var(--primary-color)"/></svg>
+                    <h2>學生應用方式與效益</h2>
+                     <div class="content-layout">
+                        <div class="content-text">
+                            <h3>1. 問答練習與知識查詢</h3>
+                            <p>對學生而言，Gemini 就像一位 <strong class="highlight-text">24小時在線的問答家教</strong>。在自習時遇到不懂的問題，可以直接提問，獲得即時的解答與說明。</p>
+                            <p>學生還可以請 AI 扮演考官，進行模擬測驗，例如：「請你出幾題關於第二次世界大戰的問題來考考我」，幫助學生檢測自己是否學得扎實。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>2. 學習摘要與筆記輔助</h3>
+                    <p>面對長篇文章或影片，學生常不知如何抓重點。Gemini 可以成為他們的<strong class="highlight-text">筆記幫手</strong>。</p>
+                    <p>學生可以將文章段落貼給 AI，請它「整理這篇文章的5個關鍵重點，用國中生能懂的語言描述」，AI 會快速輸出重點摘要，幫助學生掌握核心內容。</p>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.4 7.34L16.66 4.6l-9.51 9.51 2.45 2.45.29.3.29.29 2.74 2.74 9.51-9.51-2.74-2.74zM4 20h16v2H4v-2z" fill="var(--primary-color)"></path></svg>
+                    <h2>具體操作與提示詞應用</h2>
+                    <h3 class="no-margin-top">在 Google Workspace 中的應用</h3>
+                    <p>在 Google 文件、簡報、表單中，通常會在右側看到一個閃爍的星號圖示，點擊它即可打開 Gemini 側邊欄，開始互動。</p>
+                </div>
+                <div class="page">
+                    <h3>在 Google 文件 (Docs) 中</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <p><b>操作</b>：選取一段文字，或直接在側邊欄輸入指令。</p>
+                            <p><b>提示詞範例</b>：</p>
+                            <ul>
+                                <li>"<strong class="highlight-text">總結這段文字的重點。</strong>"</li>
+                                <li>"<strong class="highlight-text">將這篇文章改寫得更適合國小五年級學生閱讀。</strong>"</li>
+                            </ul>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16h8v2H8v-2zm0-4h8v2H8v-2zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" fill="var(--primary-color)"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                 <div class="page">
+                    <h3>在 Google 簡報 (Slides) 中</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <p><b>操作</b>：在側邊欄輸入指令來建立新投影片或圖片。</p>
+                            <p><b>提示詞範例</b>：</p>
+                            <ul>
+                                <li>"<strong class="highlight-text">新增一張關於氣候變遷影響的投影片。</strong>"</li>
+                                <li>"<strong class="highlight-text">生成一張植物細胞結構的示意圖。</strong>"</li>
+                            </ul>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 3h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm14 14V7H6v10h12z" fill="var(--primary-color)"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h4v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V19h4c1.1 0 2-.9 2-2v-4h1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" fill="var(--primary-color)"/></svg>
+                    <h2>創新教學應用</h2>
+                    <h3 class="no-margin-top">設計互動遊戲 (Canvas 創作空間)</h3>
+                    <p>老師可以利用 Gemini 的 <strong class="highlight-text">Canvas 創作空間</strong> 快速生成簡單的網頁應用或遊戲，無需深厚的程式基礎。</p>
+                </div>
+                 <div class="page">
+                    <h3>遊戲設計步驟 (以登入練習器為例)</h3>
+                    <ol>
+                        <li><b>構思</b>：告訴 Gemini：「<strong class="highlight-text">設計一個給國小生練習帳號密碼輸入的網頁遊戲。</strong>」</li>
+                        <li><b>生成程式碼</b>：接著說：「<strong class="highlight-text">請在 Gemini Canvas 中生成這個遊戲的 HTML 和 JavaScript 程式碼。</strong>」AI 會產出基本可運作的程式。</li>
+                        <li><b>(進階) 整合數據</b>：可進一步要求：「<strong class="highlight-text">修改程式碼，讓每次登入的結果記錄到 Google 試算表中。</strong>」</li>
+                        <li><b>分享與應用</b>：將生成的連結分享給學生，即可在課堂上進行互動練習。</li>
+                    </ol>
+                </div>
+                 <div class="page">
+                    <h3>生成 AI 繪本 (Storybook 功能)</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                             <p>Gemini 的 <strong class="highlight-text">Storybook</strong> 功能可以根據簡單的提示，快速生成包含**文字、插圖與 AI 朗讀**的數位繪本。</p>
+                            <p><b>提示詞範例</b>：</p>
+                             <p>"<strong class="highlight-text">請用 Storybook 功能，生成一本關於一隻名叫『小光』的螢火蟲，因為自己不夠亮而自卑，最後發現自己獨特光芒的故事。風格要溫馨，適合國小低年級學生。</strong>"</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 18H5V4h14v16zM15 6H9v2h6V6zm-3 4H9v2h3v-2zm3 0h-2v2h2v-2z" fill="var(--primary-color)"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                 <div class="page">
+                    <h3>彈性課程與自主學習歷程</h3>
+                     <ul>
+                        <li><b>彈性課程</b>：老師可以開設 AI 素養課，教導學生如何利用 Gemini 進行資料蒐集、寫作輔助，並引導他們親身體驗各種 AI 應用的可能性。</li>
+                        <br>
+                        <li><b>自學歷程</b>：學生在進行專題研究時，可利用 Gemini 擬定學習計畫、蒐集資料。更重要的是，可以在歷程檔案中記錄<strong class="highlight-text">如何使用 AI 的反思</strong>，展現數位素養。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" fill="var(--primary-color)"/></svg>
+                    <h2>Gemini 使用建議與限制</h2>
+                    <h3>1. 強調輔助性質，避免依賴取代</h3>
+                     <div class="content-layout">
+                        <div class="content-text">
+                            <p>師生都應認知，Gemini 是<strong class="highlight-text">學習與教學的輔助工具，而非完全替代人力</strong>。老師在使用 AI 生成教案後，務必經過專業判斷進行修改；學生得到的答案或作文初稿，也不應不加思索地直接提交。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                     <h3>2. 驗證內容正確性，避免謬誤擴散</h3>
+                    <p>生成式 AI 有時會產生不正確的資訊（幻覺）。</p>
+                    <ul>
+                        <li>老師和學生都應養成<strong class="highlight-text">交叉比對、事實查證</strong>的習慣。</li>
+                        <li>尤其在引用關鍵的數據或事實時，更應謹慎求證。若發現 AI 答非所問或內容錯誤，應及時糾正，以免錯誤知識傳播。</li>
+                    </ul>
+                </div>
+                 <div class="page">
+                     <h3>3. 注重隱私安全與學術誠信</h3>
+                     <ul>
+                        <li>**隱私保護**：提醒師生不要在對話中輸入任何敏感的個人資訊（如姓名、地址、密碼等）。</li>
+                        <br>
+                        <li>**學術誠信**：老師應制定明確的 AI 使用規範。鼓勵學生在報告中標註 AI 協助的部分，培養誠信的學術態度。</li>
+                     </ul>
+                </div>
+                
+                <!-- Quiz Page -->
+                <div class="page">
+                    <h2>最終學習評量</h2>
+                    <div class="quiz-container">
+                        <div id="quiz-progress-bar-container"><div id="quiz-progress-bar"></div></div>
+                        <div id="quiz-question-area"></div>
+                        <div id="quiz-feedback"></div>
+                        <button id="quiz-next-btn" onclick="nextQuestion()">下一題</button>
+                        <div id="quiz-result-area" style="display: none;">
+                            <div id="quiz-result"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div id="navigation">
+                <button id="prev-btn" onclick="changePage(-1)">上一頁</button>
+                <span id="page-indicator"></span>
+                <button class="toc-button" onclick="goToPage(1)">回目錄</button>
+                <button id="next-btn" onclick="changePage(1)">下一頁</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chapterMapping = [
+            { name: "Gemini AI 簡介與特色", startPage: 1, endPage: 2 },
+            { name: "教師應用方式與效益", startPage: 3, endPage: 4 },
+            { name: "學生應用方式與效益", startPage: 5, endPage: 6 },
+            { name: "具體操作與提示詞應用", startPage: 7, endPage: 9 },
+            { name: "創新教學應用", startPage: 10, endPage: 12 },
+            { name: "Gemini 使用建議與限制", startPage: 13, endPage: 15 },
+            { name: "最終學習評量", startPage: 16, endPage: 16 }
+        ];
+
+        let currentPageIndex = 1;
+        const pages = document.querySelectorAll('#page-content .page');
+        const totalPages = pages.length;
+        const pageIndicator = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocList = document.getElementById('toc-list');
+
+        function buildTOC() {
+            tocList.innerHTML = '';
+            chapterMapping.forEach((chapter, index) => {
+                const li = document.createElement('li');
+                li.textContent = chapter.name;
+                li.onclick = () => goToPage(chapter.startPage);
+                li.dataset.chapterIndex = index;
+                tocList.appendChild(li);
+            });
+        }
+        
+        function updateActiveTocItem() {
+            const tocItems = document.querySelectorAll('#toc-list li');
+            let activeChapterIndex = -1;
+            
+            chapterMapping.forEach((chapter, index) => {
+                if (currentPageIndex >= chapter.startPage && currentPageIndex <= chapter.endPage) {
+                    activeChapterIndex = index;
+                }
+            });
+
+            tocItems.forEach((item, index) => {
+                item.classList.toggle('active', index === activeChapterIndex);
+            });
+        }
+
+        function showPage(index) {
+            pages.forEach((page, i) => page.classList.toggle('active', i === (index -1)));
+            updateNavigation();
+            updateActiveTocItem();
+            if (index === chapterMapping[chapterMapping.length -1].startPage) {
+                startQuiz();
+            }
+        }
+
+        function updateNavigation() {
+            pageIndicator.textContent = `第 ${currentPageIndex} / ${totalPages} 頁`;
+            prevBtn.disabled = currentPageIndex === 1;
+            nextBtn.disabled = currentPageIndex === totalPages;
+        }
+
+        function changePage(direction) {
+            const newIndex = currentPageIndex + direction;
+            if (newIndex >= 1 && newIndex <= totalPages) {
+                currentPageIndex = newIndex;
+                showPage(newIndex);
+            }
+        }
+        
+        function goToPage(pageNumber) {
+            currentPageIndex = pageNumber;
+            showPage(pageNumber);
+        }
+
+        const quizData = [
+            { question: "1. Gemini AI 相比早期 AI 模型，最突出的核心特色是什麼？", options: ["只能處理文字", "原生支援多模態（文字、圖片、語音等）輸入", "速度比較慢"], correct: 1 },
+            { question: "2. 在教育應用上，Gemini 最大的優勢之一是？", options: ["只能在特定App中使用", "與 Google Workspace（文件、簡報等）高度整合", "不需要網路連線"], correct: 1 },
+            { question: "3. 一位老師想快速製作一份關於「水循環」的隨堂測驗，他應該使用 Gemini 的哪個整合功能？", options: ["在 Google 文件中寫詩", "在 Google 簡報中生成圖片", "在 Google 表單中一鍵生成問卷"], correct: 2 },
+            { question: "4. 學生在自學時，使用 Gemini 最恰當的方式是？", options: ["請 AI 直接幫忙寫完所有作業", "把它當作24小時線上家教，提問不懂的概念", "完全不使用，以免變笨"], correct: 1 },
+            { question: "5. 在社會科的歷史情境模擬活動中，Gemini 可以扮演什麼角色來幫助學生？", options: ["扮演計時器", "扮演歷史人物（如國王或農民）進行第一人稱敘述", "扮演黑板"], correct: 1 },
+            { question: "6. 所謂 AI 的「幻覺」是指什麼？", options: ["AI 會產生視覺特效", "AI 產生了不正確或憑空捏造的資訊", "AI 擁有了自我意識"], correct: 1 },
+            { question: "7. 老師想快速生成一本帶有插圖和朗讀的數位繪本，應該使用哪個 Gemini 功能？", options: ["深度研究模式", "Gemini Canvas", "Storybook 功能"], correct: 2 },
+            { question: "8. 學生在學習歷程檔案中，如何展現自己對 AI 的善用能力？", options: ["完全不提自己有用過 AI", "附上 AI 協助的過程紀錄與反思", "將 AI 生成的內容全部當作自己的作品"], correct: 1 },
+            { question: "9. 老師請 Gemini 協助設計一份數學教案，他應該如何處理 AI 生成的內容？", options: ["直接複製貼上使用", "經過自己的專業判斷，篩選並修改內容後再使用", "完全不採納"], correct: 1 },
+            { question: "10. 老師想用 Gemini 製作一個簡單的互動練習網頁，應該在哪個環境中操作？", options: ["Google 文件", "Gemini Canvas 創作空間", "Google 表單"], correct: 1 }
+        ];
+        
+        let currentQuestionIndex = 0, score = 0, quizActive = false;
+
+        function startQuiz() {
+            if (quizActive) return;
+            quizActive = true;
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('quiz-question-area').style.display = 'block';
+            document.getElementById('quiz-result-area').style.display = 'none';
+            document.getElementById('quiz-feedback').style.display = 'block';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = quizData[currentQuestionIndex];
+            const questionArea = document.getElementById('quiz-question-area');
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+            document.getElementById('quiz-feedback').innerHTML = '';
+            
+            let optionsHtml = questionData.options.map((option, i) => 
+                `<button class="answer-btn" onclick="checkAnswer(${i}, this)">${option}</button>`
+            ).join('');
+            
+            questionArea.innerHTML = `<div class="quiz-question"><p>${questionData.question}</p><div class="answer-options">${optionsHtml}</div></div>`;
+        }
+
+        function checkAnswer(selectedIndex, button) {
+            const questionData = quizData[currentQuestionIndex];
+            const optionsContainer = button.parentElement;
+            const feedbackEl = document.getElementById('quiz-feedback');
+            
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === questionData.correct) {
+                button.classList.add('correct');
+                feedbackEl.textContent = '答對了！';
+                feedbackEl.style.color = 'var(--correct-color)';
+                score++;
+            } else {
+                button.classList.add('incorrect');
+                optionsContainer.children[questionData.correct].classList.add('correct');
+                feedbackEl.textContent = '答錯了！';
+                feedbackEl.style.color = 'var(--incorrect-color)';
+            }
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.textContent = (currentQuestionIndex === quizData.length - 1) ? "顯示總分" : "下一題";
+            nextBtn.style.visibility = 'visible';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                displayQuestion();
+            } else {
+                showFinalScore();
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('quiz-question-area').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-feedback').style.display = 'none';
+            document.getElementById('quiz-progress-bar').style.width = '100%';
+
+            const resultArea = document.getElementById('quiz-result-area');
+            document.getElementById('quiz-result').textContent = `你的總分是：${score} / ${quizData.length} 分！`;
+            resultArea.style.display = 'block';
+            quizActive = false;
+        }
+        
+        // Initial setup
+        buildTOC();
+        showPage(currentPageIndex);
+    </script>
+
+</body>
+</html>

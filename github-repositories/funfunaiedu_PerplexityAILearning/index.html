@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perplexity AI 在國中小學教育中的應用方式</title>
+    <style>
+        :root {
+            --primary-color: #a1887f; /* 捻色調 / Muted Terracotta */
+            --correct-color: #5a9c6c; /* 柔和綠 / Muted Green */
+            --incorrect-color: #c96567; /* 柔和紅 / Muted Red */
+            --secondary-color: #d2b48c; /* 淺咖啡 / Tan */
+            --bg-color: #f9f5f0; /* 米色背景 / Beige Background */
+            --glass-bg: rgba(243, 240, 233, 0.65); /* 玻璃背景 */
+            --text-color: #4a4a4a; /* 深灰色文字 */
+            --heading-color: #6d4c41; /* 深咖啡色標題 */
+        }
+        
+        html {
+            font-size: 110%; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        #ebook-container {
+            width: 95%;
+            max-width: 1200px; /* Increased max-width for sidebar layout */
+            height: 95vh;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            display: flex; /* Changed to flex for sidebar layout */
+            overflow: hidden;
+        }
+
+        #toc-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0px 15px rgba(0,0,0,0.05);
+        }
+
+        #toc-sidebar h2 {
+            font-size: 1.5rem;
+            color: var(--heading-color);
+            border-bottom: 2px solid rgba(161, 136, 127, 0.2);
+            padding-bottom: 1rem;
+            margin: 0 0 1.5rem 0;
+            text-align: left;
+        }
+
+        #toc-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        #toc-list li {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        #toc-list li:hover {
+            background-color: rgba(255,255,255, 0.4);
+            color: var(--heading-color);
+        }
+
+        #toc-list li.active {
+            background-color: #fff;
+            color: var(--heading-color);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        #main-content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #ebook-header {
+            background-color: #fff;
+            color: var(--heading-color);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        #ebook-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #page-content {
+            flex-grow: 1;
+            padding: 1.5rem 3rem;
+            position: relative;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            animation: fadeIn 0.5s;
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .page-icon { width: 70px; height: 70px; margin: 0 auto 1rem; display: block; }
+        .content-layout { display: flex; align-items: center; gap: 2rem; }
+        .content-text { flex: 1; }
+        .content-image { width: 120px; flex-shrink: 0; }
+        .content-image svg { width: 100%; height: auto; }
+
+        h2, h3 {
+            text-align: center;
+            color: var(--heading-color);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.8rem;
+            margin: 0 0 1.5rem 0;
+        }
+        h3 { text-align: left; font-size: 1.4rem; margin-top: 1rem; }
+        h3.no-margin-top { margin-top: 0; }
+        p, ul, ol { font-size: 1.1rem; line-height: 1.9; }
+        li { margin-bottom: 0.8rem; }
+        ol li { margin-bottom: 1rem; }
+        
+        .highlight-text {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        #navigation {
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #navigation button {
+            background-color: var(--correct-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #navigation button:disabled { background-color: #d8d8d8; cursor: not-allowed; }
+        #navigation button:not(:disabled):hover { opacity: 0.9; }
+        #page-indicator { font-size: 1rem; font-weight: bold; color: #475569; min-width: 100px; }
+        .toc-button { display: none; } /* Hide the TOC button in sidebar layout */
+
+        .quiz-container { text-align: center; width: 100%; }
+        #quiz-progress-bar-container { width: 100%; background-color: #eee; border-radius: 5px; margin-bottom: 1.5rem; }
+        #quiz-progress-bar { height: 10px; width: 0%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.3s; }
+        .quiz-question p { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; text-align: left; }
+        .answer-options { display: flex; flex-direction: column; gap: 0.7rem; }
+        .answer-btn { width: 100%; padding: 0.8rem; border: 2px solid #cbd5e1; background-color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 1rem; }
+        .answer-btn:hover:not(:disabled) { background-color: #f0f3f8; border-color: var(--secondary-color); }
+        .answer-btn.correct { background-color: #dcfce7; border-color: var(--correct-color); color: #166534; font-weight: bold; }
+        .answer-btn.incorrect { background-color: #fee2e2; border-color: var(--incorrect-color); color: #991b1b; }
+        .answer-btn:disabled { cursor: not-allowed; opacity: 0.9; }
+        #quiz-feedback { margin-top: 1rem; font-weight: bold; height: 2rem; }
+        #quiz-next-btn { background-color: var(--secondary-color); padding: 0.8rem 1.8rem; font-size: 1.1rem; visibility: hidden; }
+        #quiz-result { font-size: 1.8rem; font-weight: bold; color: var(--heading-color); }
+
+        @media (max-width: 1024px) {
+            #ebook-container {
+                flex-direction: column;
+                height: 98vh;
+            }
+            #toc-sidebar {
+                width: auto;
+                height: auto;
+                flex-shrink: 1;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            #toc-sidebar h2 { display: none; }
+            #toc-list {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 1rem; /* For scrollbar */
+                scrollbar-width: thin;
+            }
+            #toc-list li {
+                flex-shrink: 0;
+                margin-right: 0.5rem;
+                margin-bottom: 0;
+            }
+            #page-content { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 768px) {
+            html { font-size: 100%; }
+            .content-layout { flex-direction: column; }
+            .content-image { width: 100px; margin-bottom: 1rem; }
+            #navigation button { padding: 0.6rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ebook-container">
+        <div id="toc-sidebar">
+            <h2>目錄</h2>
+            <ul id="toc-list">
+                <!-- TOC items will be dynamically generated by JS -->
+            </ul>
+        </div>
+        <div id="main-content-area">
+            <div id="ebook-header">
+                <h1>Perplexity AI 在國中小學教育中的應用方式</h1>
+            </div>
+            <div id="page-content">
+                 <!-- PAGE 0 is now the content of the TOC sidebar -->
+
+                <!-- Chapter 1: Intro -->
+                <div class="page active">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm2-4h-2V7h2v6z" fill="var(--primary-color)"/></svg>
+                    <h2>Perplexity AI 簡介</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>特色：會附上來源的「答案引擎」</h3>
+                            <p>Perplexity AI 是一種 AI 驅動的對話式搜尋與答案引擎。它能結合即時網路資訊，快速回答問題。</p>
+                            <p>最大的特色是，回答不僅直接給出結論，還會<strong class="highlight-text">附上資訊來源</strong>，提供透明可靠的依據，專注於提供有根有據的事實答案。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>與 ChatGPT 的差異</h3>
+                    <p>Perplexity AI 與 ChatGPT 都是強大的 AI，但在教育應用上有所不同：</p>
+                    <ul>
+                        <li><b>Perplexity AI</b>：強調<strong class="highlight-text">準確性</strong>與<strong class="highlight-text">來源引用</strong>。當你需要進行研究、查證事實時，它是更適合的工具。</li>
+                        <br>
+                        <li><b>ChatGPT</b>：強調<strong class="highlight-text">創意性</strong>與<strong class="highlight-text">自由對話</strong>。當你需要自由發想、創意寫作或進行開放式討論時，它的表現更為出色。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>免費版與 Pro 版功能比較</h3>
+                    <ul>
+                        <li><b>免費版</b>：適合日常基本查詢。提供即時搜尋與來源引用，但每日 <strong class="highlight-text">Pro 級查詢</strong> (約5次) 和 <strong class="highlight-text">檔案上傳</strong> (約3個) 次數有限。</li>
+                        <br>
+                        <li><b>Pro 版 (付費)</b>：適合深度研究與大量使用者。提供更強大的 AI 模型 (如 GPT-4)、<strong class="highlight-text">Copilot 協作模式</strong>、<strong class="highlight-text">無限制檔案上傳</strong>、以及每日數百次的 Pro 級查詢。</li>
+                    </ul>
+                    <p>在教育環境中，若只是偶爾查資料，免費版已足夠；若需大量閱讀文件或深入研究，Pro 版效率更高。</p>
+                </div>
+
+                <!-- Chapter 2: Teacher Use -->
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="var(--primary-color)"/></svg>
+                    <h2>教育應用 - 教師備課使用</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>1. 資料蒐集與內容準備</h3>
+                            <p>Perplexity 可作為教師的智能資料助手。透過自然語言提問，老師能快速取得某個概念的權威解釋與重點整理，且每一答案都有來源，方便進一步查證。</p>
+                            <p>例如，準備社會課時，可詢問「近期關於氣候變遷的重大報告重點」，AI 會給出摘要並附上報告官網連結，節省大量蒐集時間。</p>
+                        </div>
+                        <div class="content-image">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                     <h3>2. 教學設計與解題輔助</h3>
+                     <ul>
+                        <li><b>教學設計</b>：老師可以請 Perplexity 提供教學靈感。例如，詢問「有哪些適合國中生的太陽系有趣冷知識？」，AI 會提供多個知識點並附上來源，可用於設計課堂問題或討論活動。</li>
+                        <br>
+                        <li><b>解題輔助</b>：老師可以向 Perplexity 詢問解題步驟或概念說明，以確認自己對解答過程的掌握。AI 能提供推導過程或概念講解，協助老師預測學生的可能迷思。</li>
+                     </ul>
+                </div>
+                <div class="page">
+                    <h3>3. 文件摘要與教材整理 (<strong class="highlight-text">Pro 版核心功能</strong>)</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <p>老師經常需要閱讀大量文件。利用 Perplexity Pro 的檔案上傳與摘要功能，可以將長篇文章 (如研究報告、新聞時事) 交給 AI，請它產生重點摘要或改寫成淺顯易懂的講義。</p>
+                            <p>這有助於 **備課減負**：讓 AI 先行閱讀並抓出重點，老師再進一步確認與補充即可，大幅提升效率。</p>
+                        </div>
+                         <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chapter 3: Student Use -->
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="var(--primary-color)"/></svg>
+                    <h2>教育應用 - 學生自學使用</h2>
+                     <div class="content-layout">
+                        <div class="content-text">
+                            <h3>1. 課業疑難解答</h3>
+                            <p>學生在自學時，可以把 Perplexity 當作一位 <strong class="highlight-text">隨身家教</strong> 來提問。因為 Perplexity 能即時檢索網路並引用權威來源，學生提出的問題往往能獲得清晰且有依據的解釋。</p>
+                            <p>例如，學生可問：「請用簡單方式解釋光合作用如何將二氧化碳變成葡萄糖？」，AI 會提供分步講解並附上教育網站連結，讓學生能立即釐清觀念。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>2. 學習模式 (Study Mode) 輔助深度學習</h3>
+                    <p>這是一個專為學生設計的模式。開啟後，AI 不會直接給答案，而是會 <strong class="highlight-text">一步步引導學生理解</strong>，透過提問、提示來幫助學生自行思考得出結論。</p>
+                    <p>例如，當學生問了一個概念，AI 會先反問幾個簡單問題來了解他的既有知識，然後再調整講解深度，甚至動態生成練習題來檢測學習成效。</p>
+                </div>
+                 <div class="page">
+                    <h3>3. 資料查詢與報告製作</h3>
+                    <p>當學生做專題或寫報告時，Perplexity 是極為便利的資料查詢助手。學生只需用對話方式提問，AI 就能彙整出重點資料與引用來源，幫助學生快速搭建知識架構。</p>
+                    <p>例如，學生可依序提問「法國大革命的成因？」、「法國大革命的影響？」，AI 會給出簡潔要點並標註出處，讓學生能循序漸進地深入研究。</p>
+                </div>
+                 <div class="page">
+                    <h3>4. 上傳課堂資料進行複習 (<strong class="highlight-text">Pro 版核心功能</strong>)</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <p>學生可以將老師提供的課程講義或投影片 (PDF) 上傳至 Perplexity Pro，然後要求 AI：</p>
+                            <ul>
+                                <li>摘要重點</li>
+                                <li>根據內容出題自測</li>
+                                <li>製作成單字卡 (Flashcards)</li>
+                            </ul>
+                            <p>這相當於擁有一個可以根據個人筆記出題的智能教練，幫助學生強化記憶。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chapter 4: Scope -->
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h4v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V19h4c1.1 0 2-.9 2-2v-4h1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" fill="var(--primary-color)"/></svg>
+                    <h2>教學年段與科目應用範圍</h2>
+                    <h3 class="no-margin-top">適用年段</h3>
+                    <p>Perplexity 的功能幾乎適用於 <strong class="highlight-text">國小高年級到高中</strong> 的各年段學生。從高年級開始，在老師的引導下，學生便能逐步善用它來輔助學習。</p>
+                    <h3>各科目應用範例</h3>
+                    <ul>
+                        <li><b>國語科</b>：查詢作者生平、寫作背景，或理解文言文詞意。</li>
+                        <li><b>數學科</b>：作為解題思路的提示工具（而非直接計算器），透過學習模式理解解題步驟。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>各科目應用範例 (續)</h3>
+                    <ul>
+                        <li><b>社會科</b>：即時查詢歷史事件、地理數據，並快速獲得附有來源的佐證資料，非常適合報告寫作。</li>
+                        <li><b>自然科</b>：查詢科學名詞的通俗解釋、最新科研發現，或理解實驗原理。</li>
+                        <li><b>彈性課程/學習歷程</b>：是學生進行專題研究、探索未知領域的絕佳工具，能幫助學生快速蒐集與統整跨領域資料。</li>
+                    </ul>
+                </div>
+                
+                <!-- Chapter 5: Suggestions -->
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" fill="var(--primary-color)"/></svg>
+                    <h2>教學建議與使用限制</h2>
+                    <h3>1. 強調資料可信度與驗證</h3>
+                     <div class="content-layout">
+                        <div class="content-text">
+                            <p>雖然 Perplexity 以提供來源著稱，但這不代表所有回答都 100% 正確。引用的來源本身也可能過期或有偏頗。</p>
+                            <p><strong class="highlight-text">最佳實踐</strong>：務必教育學生點擊並 **閱讀原始來源**，培養「貨比三家、多方參考」的查證習慣，將 AI 的回覆當作線索而非最終結論。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                     <h3>2. 避免依賴與培養思辨</h3>
+                    <p>AI 是輔助學習的幫手，但不能取代人類的思考與創造力。</p>
+                    <ul>
+                        <li>鼓勵學生先 <strong class="highlight-text">獨立思考</strong>，再用 AI 的回答來對照、驗證或拓展自己的想法。</li>
+                        <li>老師在設計作業時，應多納入需要 <strong class="highlight-text">批判性思考</strong> 或 <strong class="highlight-text">個人觀點</strong> 的題目，避免學生過度依賴 AI 的現成答案。</li>
+                    </ul>
+                </div>
+                 <div class="page">
+                     <h3>3. 注重使用倫理與學術誠信</h3>
+                     <p>隨著 AI 融入教育，新的倫理問題也隨之浮現。</p>
+                     <ul>
+                        <li>老師應明確訂定規範，哪些情境下允許使用 AI 協助，哪些情況下則應杜絕。</li>
+                        <li>學生在引用 Perplexity 提供的內容時，應誠實 <strong class="highlight-text">標註來源</strong>，避免抄襲。直接複製貼上 AI 的整段回答是不可取的。</li>
+                     </ul>
+                </div>
+                
+                <!-- Quiz Page -->
+                <div class="page">
+                    <h2>最終學習評量</h2>
+                    <div class="quiz-container">
+                        <div id="quiz-progress-bar-container"><div id="quiz-progress-bar"></div></div>
+                        <div id="quiz-question-area"></div>
+                        <div id="quiz-feedback"></div>
+                        <button id="quiz-next-btn" onclick="nextQuestion()">下一題</button>
+                        <div id="quiz-result-area" style="display: none;">
+                            <div id="quiz-result"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div id="navigation">
+                <button id="prev-btn" onclick="changePage(-1)">上一頁</button>
+                <span id="page-indicator"></span>
+                <button class="toc-button" onclick="goToPage(1)">回目錄</button>
+                <button id="next-btn" onclick="changePage(1)">下一頁</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chapterMapping = [
+            { name: "Perplexity AI 簡介", startPage: 1, endPage: 3 },
+            { name: "教育應用 - 教師備課使用", startPage: 4, endPage: 6 },
+            { name: "教育應用 - 學生自學使用", startPage: 7, endPage: 10 },
+            { name: "教學年段與科目應用範圍", startPage: 11, endPage: 12 },
+            { name: "教學建議與使用限制", startPage: 13, endPage: 15 },
+            { name: "最終學習評量", startPage: 16, endPage: 16 }
+        ];
+
+        let currentPageIndex = 1;
+        const pages = document.querySelectorAll('#page-content .page');
+        const totalPages = pages.length;
+        const pageIndicator = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocList = document.getElementById('toc-list');
+
+        function buildTOC() {
+            tocList.innerHTML = '';
+            chapterMapping.forEach((chapter, index) => {
+                const li = document.createElement('li');
+                li.textContent = chapter.name;
+                li.onclick = () => goToPage(chapter.startPage);
+                li.dataset.chapterIndex = index;
+                tocList.appendChild(li);
+            });
+        }
+        
+        function updateActiveTocItem() {
+            const tocItems = document.querySelectorAll('#toc-list li');
+            let activeChapterIndex = -1;
+            
+            chapterMapping.forEach((chapter, index) => {
+                if (currentPageIndex >= chapter.startPage && currentPageIndex <= chapter.endPage) {
+                    activeChapterIndex = index;
+                }
+            });
+
+            tocItems.forEach((item, index) => {
+                item.classList.toggle('active', index === activeChapterIndex);
+            });
+        }
+
+        function showPage(index) {
+            pages.forEach((page, i) => page.classList.toggle('active', i === (index -1)));
+            updateNavigation();
+            updateActiveTocItem();
+            if (index === chapterMapping[chapterMapping.length -1].startPage) {
+                startQuiz();
+            }
+        }
+
+        function updateNavigation() {
+            pageIndicator.textContent = `第 ${currentPageIndex} / ${totalPages} 頁`;
+            prevBtn.disabled = currentPageIndex === 1;
+            nextBtn.disabled = currentPageIndex === totalPages;
+        }
+
+        function changePage(direction) {
+            const newIndex = currentPageIndex + direction;
+            if (newIndex >= 1 && newIndex <= totalPages) {
+                currentPageIndex = newIndex;
+                showPage(newIndex);
+            }
+        }
+        
+        function goToPage(pageNumber) {
+            currentPageIndex = pageNumber;
+            showPage(pageNumber);
+        }
+
+        const quizData = [
+            { question: "1. Perplexity AI 最大的特色是什麼？", options: ["可以畫出很漂亮的圖", "回答時會附上資訊來源，強調準確性", "只能用來聊天"], correct: 1 },
+            { question: "2. 當一位老師需要快速查找最新的科學報告重點並確認來源時，哪個工具更適合？", options: ["Perplexity AI", "ChatGPT (免費版)", "小畫家"], correct: 0 },
+            { question: "3. 學生使用 Perplexity 的「學習模式 (Study Mode)」時，AI 會怎麼做？", options: ["立刻給出最完整的答案", "透過提問和提示，一步步引導學生思考", "直接拒絕回答問題"], correct: 1 },
+            { question: "4. Perplexity Pro (付費版) 相比免費版，提供了以下哪項核心功能？", options: ["可以更改網頁背景顏色", "無限制的檔案上傳與摘要分析", "每天只能問一個問題"], correct: 1 },
+            { question: "5. 當 Perplexity AI 給出一個附有來源的答案時，最正確的使用態度是？", options: ["完全相信，因為有來源一定沒錯", "把答案當作線索，點擊原始來源進行查證", "只看答案，忽略來源"], correct: 1 },
+            { question: "6. 一位學生想寫關於「台灣黑熊」的報告，他應該如何使用 Perplexity？", options: ["直接請 AI 寫一篇完整的報告交出去", "用它查詢相關資料、數據和來源，再自己整理撰寫", "用它來玩遊戲"], correct: 1 },
+            { question: "7. 在數學解題上，Perplexity 最適合扮演什麼角色？", options: ["直接給出最終答案的計算機", "提示解題步驟與相關概念的輔助工具", "幫忙考試作弊的工具"], correct: 1 },
+            { question: "8. 老師們使用 Perplexity 輔助備課，最大的好處是什麼？", options: ["可以完全不用備課", "AI 可以幫忙批改所有作業", "節省蒐集與摘要大量資料的時間，提升備課效率"], correct: 2 },
+            { question: "9. 根據教學建議，老師應如何引導低年級學生使用 Perplexity？", options: ["讓他們自由探索，不需要任何指導", "在老師的帶領下集體使用，並一起討論 AI 回答的可靠性", "禁止他們使用"], correct: 1 },
+            { question: "10. 如果學生直接複製 Perplexity 的答案交作業，可能會面臨什麼問題？", options: ["會得到最高分", "違反學術誠信，且可能被抄襲檢測工具發現", "沒有任何問題"], correct: 1 }
+        ];
+        
+        let currentQuestionIndex = 0, score = 0, quizActive = false;
+
+        function startQuiz() {
+            if (quizActive) return;
+            quizActive = true;
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('quiz-question-area').style.display = 'block';
+            document.getElementById('quiz-result-area').style.display = 'none';
+            document.getElementById('quiz-feedback').style.display = 'block';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = quizData[currentQuestionIndex];
+            const questionArea = document.getElementById('quiz-question-area');
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+            document.getElementById('quiz-feedback').innerHTML = '';
+            
+            let optionsHtml = questionData.options.map((option, i) => 
+                `<button class="answer-btn" onclick="checkAnswer(${i}, this)">${option}</button>`
+            ).join('');
+            
+            questionArea.innerHTML = `<div class="quiz-question"><p>${questionData.question}</p><div class="answer-options">${optionsHtml}</div></div>`;
+        }
+
+        function checkAnswer(selectedIndex, button) {
+            const questionData = quizData[currentQuestionIndex];
+            const optionsContainer = button.parentElement;
+            const feedbackEl = document.getElementById('quiz-feedback');
+            
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === questionData.correct) {
+                button.classList.add('correct');
+                feedbackEl.textContent = '答對了！';
+                feedbackEl.style.color = 'var(--correct-color)';
+                score++;
+            } else {
+                button.classList.add('incorrect');
+                optionsContainer.children[questionData.correct].classList.add('correct');
+                feedbackEl.textContent = '答錯了！';
+                feedbackEl.style.color = 'var(--incorrect-color)';
+            }
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.textContent = (currentQuestionIndex === quizData.length - 1) ? "顯示總分" : "下一題";
+            nextBtn.style.visibility = 'visible';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                displayQuestion();
+            } else {
+                showFinalScore();
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('quiz-question-area').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-feedback').style.display = 'none';
+            document.getElementById('quiz-progress-bar').style.width = '100%';
+
+            const resultArea = document.getElementById('quiz-result-area');
+            document.getElementById('quiz-result').textContent = `你的總分是：${score} / ${quizData.length} 分！`;
+            resultArea.style.display = 'block';
+            quizActive = false;
+        }
+        
+        // Initial setup
+        buildTOC();
+        showPage(currentPageIndex);
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordwall 在國小及國中教學中的應用指南</title>
+    <style>
+        :root {
+            --primary-color: #4285f4; /* Google Blue */
+            --correct-color: #34a853; /* Google Green */
+            --incorrect-color: #ea4335; /* Google Red */
+            --secondary-color: #fbbc05; /* Google Yellow */
+            --bg-color: #f8f9fa; /* Light Gray Background */
+            --glass-bg: rgba(232, 240, 254, 0.7); /* Light Blue Glass */
+            --text-color: #3c4043; /* Dark Gray Text */
+            --heading-color: #1a73e8; /* Stronger Blue Heading */
+        }
+        
+        html {
+            font-size: 110%; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            background-image: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+        }
+
+        #ebook-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 95vh;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            display: flex;
+            overflow: hidden;
+        }
+
+        #toc-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0px 15px rgba(0,0,0,0.05);
+        }
+
+        #toc-sidebar h2 {
+            font-size: 1.5rem;
+            color: var(--heading-color);
+            border-bottom: 2px solid rgba(66, 133, 244, 0.2);
+            padding-bottom: 1rem;
+            margin: 0 0 1.5rem 0;
+            text-align: left;
+        }
+
+        #toc-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        #toc-list li {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        #toc-list li:hover {
+            background-color: rgba(255,255,255, 0.4);
+            color: var(--heading-color);
+        }
+
+        #toc-list li.active {
+            background-color: #fff;
+            color: var(--heading-color);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        #main-content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #ebook-header {
+            background-color: #fff;
+            color: var(--heading-color);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            border-bottom: 1px solid #e8eaed;
+        }
+        
+        #ebook-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #page-content {
+            flex-grow: 1;
+            padding: 1.5rem 3rem;
+            position: relative;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            animation: fadeIn 0.5s;
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .page-icon { width: 70px; height: 70px; margin: 0 auto 1rem; display: block; }
+        .content-layout { display: flex; align-items: center; gap: 2rem; }
+        .content-text { flex: 1; }
+        .content-image { width: 120px; flex-shrink: 0; }
+        .content-image svg { width: 100%; height: auto; }
+
+        h2, h3 {
+            text-align: center;
+            color: var(--heading-color);
+            border-bottom: 2px solid #e8eaed;
+            padding-bottom: 0.8rem;
+            margin: 0 0 1.5rem 0;
+        }
+        h3 { text-align: left; font-size: 1.4rem; margin-top: 1rem; }
+        h3.no-margin-top { margin-top: 0; }
+        p, ul, ol { font-size: 1.1rem; line-height: 1.9; }
+        li { margin-bottom: 0.8rem; }
+        ol li { margin-bottom: 1rem; }
+        
+        .highlight-text {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        #navigation {
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #dadce0;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #navigation button {
+            background-color: var(--correct-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #navigation button:disabled { background-color: #d8d8d8; cursor: not-allowed; }
+        #navigation button:not(:disabled):hover { opacity: 0.9; }
+        #page-indicator { font-size: 1rem; font-weight: bold; color: #5f6368; min-width: 100px; }
+        .toc-button { display: none; }
+
+        .quiz-container { text-align: center; width: 100%; }
+        #quiz-progress-bar-container { width: 100%; background-color: #eee; border-radius: 5px; margin-bottom: 1.5rem; }
+        #quiz-progress-bar { height: 10px; width: 0%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.3s; }
+        .quiz-question p { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; text-align: left; }
+        .answer-options { display: flex; flex-direction: column; gap: 0.7rem; }
+        .answer-btn { width: 100%; padding: 0.8rem; border: 2px solid #dadce0; background-color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 1rem; }
+        .answer-btn:hover:not(:disabled) { background-color: #e8f0fe; border-color: var(--primary-color); }
+        .answer-btn.correct { background-color: #e6f4ea; border-color: var(--correct-color); color: #1e8e3e; font-weight: bold; }
+        .answer-btn.incorrect { background-color: #fce8e6; border-color: var(--incorrect-color); color: #c5221f; }
+        .answer-btn:disabled { cursor: not-allowed; opacity: 0.9; }
+        #quiz-feedback { margin-top: 1rem; font-weight: bold; height: 2rem; }
+        #quiz-next-btn { background-color: var(--secondary-color); padding: 0.8rem 1.8rem; font-size: 1.1rem; visibility: hidden; }
+        #quiz-result { font-size: 1.8rem; font-weight: bold; color: var(--heading-color); }
+
+        @media (max-width: 1024px) {
+            #ebook-container {
+                flex-direction: column;
+                height: 98vh;
+            }
+            #toc-sidebar {
+                width: auto;
+                height: auto;
+                flex-shrink: 1;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            #toc-sidebar h2 { display: none; }
+            #toc-list {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 1rem;
+                scrollbar-width: thin;
+            }
+            #toc-list li {
+                flex-shrink: 0;
+                margin-right: 0.5rem;
+                margin-bottom: 0;
+            }
+            #page-content { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 768px) {
+            html { font-size: 100%; }
+            .content-layout { flex-direction: column; }
+            .content-image { width: 100px; margin-bottom: 1rem; }
+            #navigation button { padding: 0.6rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ebook-container">
+        <div id="toc-sidebar">
+            <h2>目錄</h2>
+            <ul id="toc-list"></ul>
+        </div>
+        <div id="main-content-area">
+            <div id="ebook-header">
+                <h1>Wordwall 在國中小教學中的應用指南</h1>
+            </div>
+            <div id="page-content">
+                <div class="page active">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm2-4h-2V7h2v6z" fill="var(--primary-color)"/></svg>
+                    <h2>Wordwall 平台介紹</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>什麼是 Wordwall？</h3>
+                            <p>Wordwall 是一款<strong class="highlight-text">線上互動式教學遊戲平台</strong>。老師可以在網站上快速建立各種題型的學習活動，如測驗、配對、文字遊戲等。</p>
+                            <p>只需「選擇範本、輸入內容、完成發布」三步驟，不到十分鐘就能製作出一個完整的互動遊戲。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-2 10H5V8h14v8zM7 15h2v-2H7v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z" fill="var(--primary-color)"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>平台特色</h3>
+                     <ul>
+                        <li><strong class="highlight-text">一鍵切換模板</strong>：同一份題目內容，可以一鍵轉換成不同的遊戲模式，實現「一稿多用」，大幅提升教學活動的靈活性。</li>
+                        <br>
+                        <li><strong class="highlight-text">兼具線上線下</strong>：大部分的模板都支援將活動匯出為可列印的紙本，方便在沒有網路的環境下使用。</li>
+                         <br>
+                        <li><strong class="highlight-text">社群題庫</strong>：可以直接瀏覽、套用或修改全球老師公開分享的作品，快速取得靈感與教學資源。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill="var(--primary-color)"/></svg>
+                    <h2>帳號類型與功能差異</h2>
+                    <h3>免費版 vs. 付費版</h3>
+                    <ul>
+                        <li><b>免費版</b>：提供約 12 種常用模板，但只能建立 **最多 3 個** 活動。適合初次體驗或小規模使用的老師。</li>
+                        <br>
+                        <li><b>付費版 (標準/專業)</b>：解鎖 **所有 (18-34種) 模板**，且可以建立 **無限多個** 活動。專業版還支援批量匯入題目等進階功能。</li>
+                    </ul>
+                     <p>許多學校或教材出版商會提供專業版授權，老師可以先確認學校是否有相關資源。</p>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill="var(--primary-color)"/></svg>
+                    <h2>活動模板類型詳解</h2>
+                     <h3 class="no-margin-top">測驗與配對類型</h3>
+                    <ul>
+                        <li><b>隨堂測驗 (Quiz)</b>：經典的選擇題模式，有計時和排名機制，適合課堂即時反饋或小考。</li>
+                        <br>
+                        <li><b>配對遊戲 (Matching Pairs)</b>：記憶翻牌遊戲，適合詞彙、定義、圖像等配對練習，能有效鍛鍊學生的短期記憶。</li>
+                    </ul>
+                </div>
+                 <div class="page">
+                    <h3>遊戲與工具類型</h3>
+                    <ul>
+                        <li><b>隨機輪盤 (Random Wheel)</b>：可用於課堂隨機抽籤、選擇題目或活動，能有效提升課堂的趣味性與公平性。</li>
+                        <br>
+                        <li><b>開箱遊戲 (Open the Box)</b>：充滿驚喜感的問答遊戲，學生輪流選擇箱子回答問題，適合課堂複習或總結活動。</li>
+                         <br>
+                        <li><b>迷宮追逐 (Maze Chase)</b>：類似小精靈的遊戲，學生需操作角色吃到正確答案並躲避敵人，將知識點融入遊戲情境。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="var(--primary-color)"/></svg>
+                    <h2>教師端應用技巧與策略</h2>
+                    <h3 class="no-margin-top">1. 快速備課與差異化教學</h3>
+                    <ul>
+                        <li><b>快速備課</b>：利用「社群題庫」搜尋關鍵字，快速找到現成教材進行修改，或將自己的題目複製貼上，幾分鐘內即可完成一個活動。</li>
+                        <br>
+                        <li><b>差異化教學</b>：同一份題目，利用「切換模板」功能生成多種不同難度或風格的遊戲。老師可以設計<strong class="highlight-text">「選擇菜單」</strong>，讓不同程度的學生選擇適合自己的遊戲來練習。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                     <h3>2. 任務指派與成績追蹤</h3>
+                     <p>Wordwall 可與 Google Classroom 等學習管理系統 (LMS) 結合。</p>
+                    <ol>
+                        <li><b>指派作業</b>：在 Wordwall 中建立好活動後，點擊「分享」→「指派作業」，設定截止日期等。</li>
+                        <li><b>發布連結</b>：將產生的專屬連結貼到 Google Classroom 的作業佈告中。</li>
+                        <li><b>查看報告</b>：學生完成後，老師可以在 Wordwall 的「我的結果」頁面，查看全班的答對率、用時等詳細數據，方便進行學習成效分析。</li>
+                    </ol>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="var(--primary-color)"/></svg>
+                    <h2>學生端應用與參與方式</h2>
+                    <h3 class="no-margin-top">個別練習、自主學習與親子共學</h3>
+                    <ul>
+                        <li><b>課堂自主練習</b>：在一對一平板的教室中，學生可以根據自己的節奏進行練習，獲得即時回饋並自行糾錯。</li>
+                        <br>
+                        <li><b>課後自主學習</b>：學生在家可以隨時登入平台複習，甚至自行搜尋社群中的公開遊戲，進行課外知識的探索。</li>
+                        <br>
+                        <li><b>親子共學互動</b>：簡單的操作模式非常適合家長與孩子一起玩，例如進行一場「數學計算大賽」，增進親子感情。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>學生參與創作與同儕挑戰</h3>
+                    <p>老師可以引導中高年級的學生嘗試<strong class="highlight-text">設計題目，體驗當「小老師」的過程</strong>。</p>
+                    <p>學生在設計題目的過程中，需要先梳理知識點、思考正確答案與干擾選項，這本身就是一種更高層次的學習。完成後，還可以將作品分享給同學進行「同儕挑戰」，舉辦一場「最佳小老師遊戲獎」評比，能極大地激發學生的創造力與學習動機。</p>
+                </div>
+                 <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" fill="var(--primary-color)"/></svg>
+                    <h2>年段分級設計建議</h2>
+                    <h3 class="no-margin-top">低年級 (1-2年級) 設計要點</h3>
+                    <p>此階段的遊戲應<strong class="highlight-text">內容簡單、操作直觀</strong>。題目文字要少，多用圖像輔助。建議選擇「翻翻看」、「配對」、「隨機輪盤」等簡單點擊或拖曳的模板。鼓勵合作而非競爭，並隨時給予鼓勵性回饋。</p>
+                </div>
+                <div class="page">
+                     <h3>高年級 (3-6年級) 設計要點</h3>
+                    <p>此階段可增加<strong class="highlight-text">挑戰性與競爭元素</strong>。充分運用排行榜和計時器功能。可以設計需要多步驟思考的綜合性闖關活動，並鼓勵學生開始嘗試自行設計簡單的遊戲。</p>
+                </div>
+                 <div class="page">
+                     <h3>國中階段 (7-9年級) 設計要點</h3>
+                     <p>此階段的活動應<strong class="highlight-text">深化知識與批判思考</strong>。題目可設計得更具深度，例如出現「最適當」而非唯一正確的選項。鼓勵學生自主管理學習進度，甚至可以讓他們分組負責某單元的複習遊戲製作，並主持競賽。</p>
+                </div>
+                
+                <!-- Quiz Page -->
+                <div class="page">
+                    <h2>最終學習評量</h2>
+                    <div class="quiz-container">
+                        <div id="quiz-progress-bar-container"><div id="quiz-progress-bar"></div></div>
+                        <div id="quiz-question-area"></div>
+                        <div id="quiz-feedback"></div>
+                        <button id="quiz-next-btn" onclick="nextQuestion()">下一題</button>
+                        <div id="quiz-result-area" style="display: none;">
+                            <div id="quiz-result"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div id="navigation">
+                <button id="prev-btn" onclick="changePage(-1)">上一頁</button>
+                <span id="page-indicator"></span>
+                <button class="toc-button" onclick="goToPage(1)">回目錄</button>
+                <button id="next-btn" onclick="changePage(1)">下一頁</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chapterMapping = [
+            { name: "Wordwall 平台介紹", startPage: 1, endPage: 2 },
+            { name: "帳號類型與功能差異", startPage: 3, endPage: 3 },
+            { name: "活動模板類型詳解", startPage: 4, endPage: 5 },
+            { name: "教師端應用技巧與策略", startPage: 6, endPage: 7 },
+            { name: "學生端應用與參與方式", startPage: 8, endPage: 9 },
+            { name: "年段分級設計建議", startPage: 10, endPage: 12 },
+            { name: "最終學習評量", startPage: 13, endPage: 13 }
+        ];
+
+        let currentPageIndex = 1;
+        const pages = document.querySelectorAll('#page-content .page');
+        const totalPages = pages.length;
+        const pageIndicator = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocList = document.getElementById('toc-list');
+
+        function buildTOC() {
+            tocList.innerHTML = '';
+            chapterMapping.forEach((chapter, index) => {
+                const li = document.createElement('li');
+                li.textContent = chapter.name;
+                li.onclick = () => goToPage(chapter.startPage);
+                li.dataset.chapterIndex = index;
+                tocList.appendChild(li);
+            });
+        }
+        
+        function updateActiveTocItem() {
+            const tocItems = document.querySelectorAll('#toc-list li');
+            let activeChapterIndex = -1;
+            
+            chapterMapping.forEach((chapter, index) => {
+                if (currentPageIndex >= chapter.startPage && currentPageIndex <= chapter.endPage) {
+                    activeChapterIndex = index;
+                }
+            });
+
+            tocItems.forEach((item, index) => {
+                item.classList.toggle('active', index === activeChapterIndex);
+            });
+        }
+
+        function showPage(index) {
+            pages.forEach((page, i) => page.classList.toggle('active', i === (index -1)));
+            updateNavigation();
+            updateActiveTocItem();
+            if (index === chapterMapping[chapterMapping.length -1].startPage) {
+                startQuiz();
+            }
+        }
+
+        function updateNavigation() {
+            pageIndicator.textContent = `第 ${currentPageIndex} / ${totalPages} 頁`;
+            prevBtn.disabled = currentPageIndex === 1;
+            nextBtn.disabled = currentPageIndex === totalPages;
+        }
+
+        function changePage(direction) {
+            const newIndex = currentPageIndex + direction;
+            if (newIndex >= 1 && newIndex <= totalPages) {
+                currentPageIndex = newIndex;
+                showPage(newIndex);
+            }
+        }
+        
+        function goToPage(pageNumber) {
+            currentPageIndex = pageNumber;
+            showPage(pageNumber);
+        }
+
+        const quizData = [
+            { question: "1. Wordwall 最大的特色之一「一稿多用」是指什麼？", options: ["一個帳號可以很多人用", "一份題目內容可以一鍵切換成不同遊戲模板", "只能用一次"], correct: 1 },
+            { question: "2. 老師想在課堂上隨機抽學生回答問題，最適合使用哪個模板？", options: ["隨堂測驗 (Quiz)", "隨機輪盤 (Random Wheel)", "配對遊戲 (Matching Pairs)"], correct: 1 },
+            { question: "3. Wordwall 的免費帳號最多可以建立幾個活動？", options: ["1個", "3個", "無限制"], correct: 1 },
+            { question: "4. 老師想將 Wordwall 活動當作正式作業，並追蹤學生成績，他應該怎麼做？", options: ["直接分享遊戲連結", "使用「指派作業」功能並將連結貼到LMS", "只能口頭要求學生玩"], correct: 1 },
+            { question: "5. 哪種 Wordwall 模板最適合用來練習歷史事件的先後順序？", options: ["排序練習 (Ordering)", "打地鼠 (Whack-a-mole)", "分類 (Group Sort)"], correct: 0 },
+            { question: "6. 對於國小低年級學生，設計 Wordwall 活動時應該注意什麼？", options: ["題目越難越好", "操作簡單，多圖少字，鼓勵合作", "時間越長越好"], correct: 1 },
+            { question: "7. 學生利用 Wordwall 的「社群題庫」自主學習時，老師應提醒他們什麼？", options: ["盡量玩最高分的遊戲", "判斷網路資源的品質，並選擇適合的內容", "不要玩別人做的遊戲"], correct: 1 },
+            { question: "8. 老師想讓學生練習英文單字與圖片的配對，哪個模板最不適合？", options: ["配對遊戲 (Matching Pairs)", "隨機輪盤 (Random Wheel)", "匹配遊戲 (Match up)"], correct: 1 },
+            { question: "9. 「觀點辯論」語音模式最適合用在哪種教學情境？", options: ["背誦數學公式", "介紹有正反立場的社會科議題", "講解實驗步驟"], correct: 1 },
+            { question: "10. 讓學生自己設計 Wordwall 遊戲，主要能培養他們的什麼能力？", options: ["只會玩遊戲的能力", "主動學習、創造思維與高層次思考能力", "打字速度"], correct: 1 }
+        ];
+        
+        let currentQuestionIndex = 0, score = 0, quizActive = false;
+
+        function startQuiz() {
+            if (quizActive) return;
+            quizActive = true;
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('quiz-question-area').style.display = 'block';
+            document.getElementById('quiz-result-area').style.display = 'none';
+            document.getElementById('quiz-feedback').style.display = 'block';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = quizData[currentQuestionIndex];
+            const questionArea = document.getElementById('quiz-question-area');
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+            document.getElementById('quiz-feedback').innerHTML = '';
+            
+            let optionsHtml = questionData.options.map((option, i) => 
+                `<button class="answer-btn" onclick="checkAnswer(${i}, this)">${option}</button>`
+            ).join('');
+            
+            questionArea.innerHTML = `<div class="quiz-question"><p>${questionData.question}</p><div class="answer-options">${optionsHtml}</div></div>`;
+        }
+
+        function checkAnswer(selectedIndex, button) {
+            const questionData = quizData[currentQuestionIndex];
+            const optionsContainer = button.parentElement;
+            const feedbackEl = document.getElementById('quiz-feedback');
+            
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === questionData.correct) {
+                button.classList.add('correct');
+                feedbackEl.textContent = '答對了！';
+                feedbackEl.style.color = 'var(--correct-color)';
+                score++;
+            } else {
+                button.classList.add('incorrect');
+                optionsContainer.children[questionData.correct].classList.add('correct');
+                feedbackEl.textContent = '答錯了！';
+                feedbackEl.style.color = 'var(--incorrect-color)';
+            }
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.textContent = (currentQuestionIndex === quizData.length - 1) ? "顯示總分" : "下一題";
+            nextBtn.style.visibility = 'visible';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                displayQuestion();
+            } else {
+                showFinalScore();
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('quiz-question-area').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-feedback').style.display = 'none';
+            document.getElementById('quiz-progress-bar').style.width = '100%';
+
+            const resultArea = document.getElementById('quiz-result-area');
+            document.getElementById('quiz-result').textContent = `你的總分是：${score} / ${quizData.length} 分！`;
+            resultArea.style.display = 'block';
+            quizActive = false;
+        }
+        
+        // Initial setup
+        buildTOC();
+        showPage(currentPageIndex);
+    </script>
+
+</body>
+</html>

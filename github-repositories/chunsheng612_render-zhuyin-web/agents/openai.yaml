@@ -1,0 +1,4 @@
+interface:
+  display_name: "Render Zhuyin Web"
+  short_description: "Annotate every Han character with contextual Zhuyin"
+  default_prompt: "Use $render-zhuyin-web to annotate every Chinese character on this web page with contextual Zhuyin and verify complete coverage."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "自學 RPG 遊戲製作工坊"
+  short_description: "沿用文道問劍與阿瓦隆經驗，製作可替換學科、劇情和美術的自學遊戲"
+  default_prompt: "請使用 $learning-rpg-workshop，依照我的主題與學習對象，製作類似文道問劍或誓劍阿瓦隆的自學 RPG 遊戲。"

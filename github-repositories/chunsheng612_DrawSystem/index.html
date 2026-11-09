@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸運抽獎系統 v2.5</title>
+    <style>
+        /* CSS 部分與 v2.4 完全相同 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        :root {
+            --primary-color: #444444; 
+            --background-color: #FDFBF8;
+            --card-bg: rgba(255, 255, 255, 0.55); 
+            --card-border: rgba(255, 255, 255, 0.4);
+            --text-color-primary: #1d1d1f; 
+            --text-color-secondary: #5a5a5f; 
+            --input-bg: rgba(235, 235, 240, 0.6);
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --control-border-radius: 14px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color-primary);
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-image: url('1.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            perspective: 1200px;
+            overflow-y: auto;
+            padding-bottom: 100px; 
+        }
+        .creator-credit {
+            position: fixed;
+            bottom: 25px; 
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffffff;
+            color: var(--text-color-primary);
+            padding: 10px 20px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid #EAEAEA;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 1001;
+        }
+        .creator-credit:hover {
+            transform: translateY(-4px) translateX(-50%);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+        }
+        .container { max-width: 600px; margin: 0 auto; transition: all 0.5s ease; }
+        .header { text-align: center; margin-bottom: 40px; position: relative; }
+        h1 {
+            font-weight: 600;
+            font-size: 2.8em;
+            color: #FFFFFF;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        .card { background: var(--card-bg); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); border-radius: 24px;  border: 1px solid var(--card-border); box-shadow: 0 12px 35px var(--shadow-color); padding: 30px; margin-bottom: 30px; transform-style: preserve-3d; transform: translateZ(20px); }
+        .card > * { transform: translateZ(40px); }
+        h2 { font-weight: 600; color: var(--text-color-primary); margin: 10px 0 20px; text-align: center; }
+        input, select, button, textarea { border-radius: var(--control-border-radius) !important; }
+        input, textarea { background-color: var(--input-bg); border: 1px solid rgba(0,0,0,0.08); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); padding: 14px 18px; font-size: 1em; width: 100%; transition: all 0.3s ease; -webkit-appearance: none; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.25); }
+        button { padding: 14px 22px; border: none; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        button.btn-primary { background: var(--primary-color); color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        button.btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        button.btn-primary:active { transform: translateY(0); filter: brightness(0.95); }
+        button.btn-primary:disabled { background: #c9c9ce; color: #838388; cursor: not-allowed; box-shadow: none; transform: none; filter: none; }
+        button.btn-glass { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--text-color-secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        button.btn-glass:hover { background: rgba(255, 255, 255, 0.4); color: var(--text-color-primary); transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
+        .controls { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: flex-end; margin-bottom: 25px; }
+        .control-group label { font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 8px; font-weight: 500; display: block; }
+        #name-list-container { max-height: 200px; overflow-y: auto; padding-right: 10px; margin-top: 20px; }
+        .name-tag { display: inline-flex; align-items: center; background-color: var(--input-bg); border-radius: var(--control-border-radius); padding: 8px 12px; margin: 4px; font-weight: 500; color: var(--text-color-primary); border: 1px solid rgba(0,0,0,0.05); animation: fadeIn 0.3s ease forwards; }
+        .delete-name { margin-left: 8px; width: 18px; height: 18px; background-color: rgba(0,0,0,0.1); border-radius: 50%; border:none; color: var(--text-color-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 18px; transition: all 0.2s; }
+        .delete-name:hover { background-color: var(--danger-color); color: white; transform: scale(1.1); }
+        .section-divider { border-top: 1px solid var(--card-border); padding-top: 25px; margin-top: 25px; }
+        .quick-add-grid { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end; margin-top: 15px; }
+        .main-actions { display: flex; gap: 15px; }
+        .main-actions button { flex-grow: 1; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        #spinner-screen { display: none; text-align: center; }
+        .spinner-box { background-color: var(--input-bg); border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; padding: 40px 20px; margin: 20px 0; overflow: hidden; box-shadow: inset 0 2px 10px rgba(0,0,0,0.1); }
+        #spinner-text { font-size: 3em; font-weight: 700; color: var(--primary-color); height: 60px; line-height: 60px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #winner-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; opacity: 0; pointer-events: none; background: radial-gradient(circle, #4a4a4a 0%, #1e1e1e 100%); transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        #winner-screen.show { opacity: 1; pointer-events: auto; }
+        #winner-screen .winner-content { animation: popIn 1s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; opacity: 0; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .winner-title { font-size: 2.5em; font-weight: 300; color: rgba(255, 255, 255, 0.7); margin: 0; letter-spacing: 2px; }
+        #winner-name { font-size: clamp(3em, 10vw, 8em); font-weight: 700; margin: 10px 0 40px; color: transparent; background: linear-gradient(45deg, #ffc371, #ff5f6d); -webkit-background-clip: text; background-clip: text; text-shadow: 0 5px 25px rgba(255, 95, 109, 0.4); }
+        #close-winner-btn { font-size: 1em; padding: 14px 30px; transform: scale(1); }
+        .confetti { position: absolute; width: 10px; height: 20px; top: -50px; opacity: 0; animation: fall 5s linear infinite; }
+        @keyframes fall { 0% { transform: translateY(0vh) rotateZ(0); opacity: 1; } 100% { transform: translateY(110vh) rotateZ(720deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- HTML 內容無變更 -->
+        <div class="header">
+            <h1>幸運抽獎系統</h1>
+        </div>
+        <div id="setup-screen">
+            <div class="card">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="name-input">新增單筆名單</label>
+                        <input type="text" id="name-input" placeholder="輸入姓名後按下 Enter 或新增">
+                    </div>
+                    <button id="add-btn" class="btn-primary">新增</button>
+                </div>
+                <div class="section-divider">
+                    <div class="control-group">
+                        <label for="bulk-input">快速新增 (每行一個)</label>
+                        <textarea id="bulk-input" placeholder="從 Excel 或記事本貼上名單..."></textarea>
+                        <div class="quick-add-grid">
+                            <input type="number" id="seat-number-input" placeholder="輸入人數產生座號">
+                            <button id="generate-seats-btn" class="btn-glass">產生</button>
+                            <button id="import-bulk-btn" class="btn-primary" style="grid-column: 1 / -1;">匯入名單</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="name-list-container"></div>
+                <div class="section-divider main-actions">
+                    <button id="clear-list-btn" class="btn-glass">清空名單</button>
+                    <button id="start-draw-btn" class="btn-primary" disabled>開始抽獎</button>
+                </div>
+            </div>
+        </div>
+        <div id="spinner-screen">
+             <div class="card">
+                <h2>抽獎進行中...</h2>
+                <div class="spinner-box">
+                    <div id="spinner-text">準備開始</div>
+                </div>
+             </div>
+        </div>
+    </div>
+    <div id="winner-screen">
+        <div id="confetti-container"></div>
+        <div class="winner-content">
+            <h2 class="winner-title">恭喜中獎！</h2>
+            <p id="winner-name">獲獎者</p>
+            <button id="close-winner-btn" class="btn-glass">返回</button>
+        </div>
+    </div>
+
+    <a href="https://www.facebook.com/FunFun.AI.Teacher/" target="_blank" rel="noopener noreferrer" class="creator-credit">
+        Created by 方方老師
+    </a>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 元素選擇 (新增 creatorCredit) ---
+            const creatorCredit = document.querySelector('.creator-credit');
+            const nameInput = document.getElementById('name-input');
+            const addBtn = document.getElementById('add-btn');
+            const nameListContainer = document.getElementById('name-list-container');
+            const startDrawBtn = document.getElementById('start-draw-btn');
+            const clearListBtn = document.getElementById('clear-list-btn');
+            const bulkInput = document.getElementById('bulk-input');
+            const importBulkBtn = document.getElementById('import-bulk-btn');
+            const seatNumberInput = document.getElementById('seat-number-input');
+            const generateSeatsBtn = document.getElementById('generate-seats-btn');
+            const setupScreen = document.getElementById('setup-screen');
+            const spinnerScreen = document.getElementById('spinner-screen');
+            const spinnerText = document.getElementById('spinner-text');
+            const winnerScreen = document.getElementById('winner-screen');
+            const winnerName = document.getElementById('winner-name');
+            const closeWinnerBtn = document.getElementById('close-winner-btn');
+            const confettiContainer = document.getElementById('confetti-container');
+
+            let participants = [];
+
+            // --- 函式 (僅修改 showWinner 和 hideWinner) ---
+            const renderNameList = () => {
+                nameListContainer.innerHTML = '';
+                if (participants.length === 0) {
+                    const placeholder = document.createElement('p');
+                    placeholder.textContent = '目前名單是空的，請新增。';
+                    placeholder.style.textAlign = 'center';
+                    placeholder.style.color = 'var(--text-color-secondary)';
+                    nameListContainer.appendChild(placeholder);
+                } else {
+                    const uniqueParticipants = [...new Set(participants)];
+                    participants = uniqueParticipants;
+                    participants.forEach((name, index) => {
+                        const nameTag = document.createElement('div');
+                        nameTag.className = 'name-tag';
+                        nameTag.innerHTML = `
+                            <span>${name}</span>
+                            <button class="delete-name" data-index="${index}">×</button>
+                        `;
+                        nameListContainer.appendChild(nameTag);
+                    });
+                }
+                updateButtonsState();
+            };
+            
+            const updateButtonsState = () => {
+                const canDraw = participants.length >= 2;
+                startDrawBtn.disabled = !canDraw;
+                clearListBtn.disabled = participants.length === 0;
+            };
+
+            const addName = () => {
+                const name = nameInput.value.trim();
+                if (name && !participants.includes(name)) {
+                    participants.push(name);
+                    renderNameList();
+                }
+                nameInput.value = '';
+                nameInput.focus();
+            };
+
+            const deleteName = (index) => {
+                participants.splice(index, 1);
+                renderNameList();
+            };
+
+            const clearList = () => {
+                if(confirm('確定要清空所有名單嗎？')) {
+                    participants = [];
+                    renderNameList();
+                }
+            };
+
+            const importFromTextarea = () => {
+                const namesFromText = bulkInput.value.trim().split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name !== '');
+                
+                if (namesFromText.length > 0) {
+                    participants = [...new Set([...participants, ...namesFromText])];
+                    renderNameList();
+                    bulkInput.value = '';
+                }
+            };
+
+            const generateSeatNumbers = () => {
+                const count = parseInt(seatNumberInput.value, 10);
+                if (count > 0) {
+                    const seatNumbers = [];
+                    for (let i = 1; i <= count; i++) {
+                        seatNumbers.push(`${i}號`);
+                    }
+                    participants = [...new Set([...participants, ...seatNumbers])];
+                    renderNameList();
+                    seatNumberInput.value = '';
+                }
+            };
+            
+            const startDraw = () => {
+                setupScreen.style.display = 'none';
+                spinnerScreen.style.display = 'block';
+                let spinCount = 0;
+                const totalSpins = 30 + Math.floor(Math.random() * 10);
+                const spinDuration = 100;
+
+                const spinInterval = setInterval(() => {
+                    spinCount++;
+                    const randomIndex = Math.floor(Math.random() * participants.length);
+                    spinnerText.textContent = participants[randomIndex];
+                    if (spinCount >= totalSpins) {
+                        clearInterval(spinInterval);
+                        const winner = participants[randomIndex];
+                        participants = participants.filter(p => p !== winner);
+                        setTimeout(() => showWinner(winner), 500);
+                    }
+                }, spinDuration);
+            };
+
+            const showWinner = (winner) => {
+                winnerName.textContent = winner;
+                createConfetti();
+                winnerScreen.classList.add('show');
+                // 【修改 #1】隱藏署名標籤
+                creatorCredit.style.display = 'none'; 
+            };
+
+            const hideWinner = () => {
+                winnerScreen.classList.remove('show');
+                setTimeout(() => {
+                    setupScreen.style.display = 'block';
+                    spinnerScreen.style.display = 'none';
+                    spinnerText.textContent = '準備開始';
+                    confettiContainer.innerHTML = '';
+                    renderNameList();
+                    // 【修改 #2】重新顯示署名標籤
+                    creatorCredit.style.display = 'block'; 
+                }, 800);
+            };
+
+            const createConfetti = () => {
+                confettiContainer.innerHTML = '';
+                const confettiCount = 150;
+                const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#ffeb3b', '#ffc107', '#ff9800'];
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = `${Math.random() * 5}s`;
+                    confetti.style.width = `${Math.random() * 8 + 5}px`;
+                    confetti.style.height = `${Math.random() * 15 + 8}px`;
+                    confetti.style.opacity = Math.random() * 0.5 + 0.5;
+                    confettiContainer.appendChild(confetti);
+                }
+            };
+
+            // --- 事件監聽 (無變更) ---
+            addBtn.addEventListener('click', addName);
+            nameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addName(); });
+            nameListContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-name')) {
+                    const index = e.target.getAttribute('data-index');
+                    deleteName(parseInt(index, 10));
+                }
+            });
+            clearListBtn.addEventListener('click', clearList);
+            startDrawBtn.addEventListener('click', startDraw);
+            closeWinnerBtn.addEventListener('click', hideWinner);
+            importBulkBtn.addEventListener('click', importFromTextarea);
+            generateSeatsBtn.addEventListener('click', generateSeatNumbers);
+            seatNumberInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') generateSeatNumbers(); });
+            
+            renderNameList();
+        });
+    </script>
+</body>
+</html>

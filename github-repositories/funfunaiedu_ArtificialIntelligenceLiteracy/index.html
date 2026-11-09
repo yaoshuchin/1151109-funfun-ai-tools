@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人工智慧素養自學教材</title>
+    <style>
+        :root {
+            --primary-color: #a1887f; /* 捻色調 / Muted Terracotta */
+            --correct-color: #5a9c6c; /* 柔和綠 / Muted Green */
+            --incorrect-color: #c96567; /* 柔和紅 / Muted Red */
+            --secondary-color: #d2b48c; /* 淺咖啡 / Tan */
+            --bg-color: #f9f5f0; /* 米色背景 / Beige Background */
+            --glass-bg: rgba(243, 240, 233, 0.65); /* 玻璃背景 */
+            --text-color: #4a4a4a; /* 深灰色文字 */
+            --heading-color: #6d4c41; /* 深咖啡色標題 */
+        }
+        
+        html {
+            font-size: 110%; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        #ebook-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 95vh;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            display: flex;
+            overflow: hidden;
+        }
+
+        #toc-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0px 15px rgba(0,0,0,0.05);
+        }
+
+        #toc-sidebar h2 {
+            font-size: 1.5rem;
+            color: var(--heading-color);
+            border-bottom: 2px solid rgba(161, 136, 127, 0.2);
+            padding-bottom: 1rem;
+            margin: 0 0 1.5rem 0;
+            text-align: left;
+        }
+
+        #toc-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        #toc-list li {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        #toc-list li:hover {
+            background-color: rgba(255,255,255, 0.4);
+            color: var(--heading-color);
+        }
+
+        #toc-list li.active {
+            background-color: #fff;
+            color: var(--heading-color);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        #main-content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #ebook-header {
+            background-color: #fff;
+            color: var(--heading-color);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        #ebook-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #page-content {
+            flex-grow: 1;
+            padding: 1.5rem 3rem;
+            position: relative;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            animation: fadeIn 0.5s;
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .page-icon { width: 70px; height: 70px; margin: 0 auto 1rem; display: block; }
+        .content-layout { display: flex; align-items: center; gap: 2rem; }
+        .content-text { flex: 1; }
+        .content-image { width: 120px; flex-shrink: 0; }
+        .content-image svg { width: 100%; height: auto; }
+
+        h2, h3 {
+            text-align: center;
+            color: var(--heading-color);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.8rem;
+            margin: 0 0 1.5rem 0;
+        }
+        h3 { text-align: left; font-size: 1.4rem; margin-top: 1rem; }
+        h3.no-margin-top { margin-top: 0; }
+        p, ul, ol { font-size: 1.1rem; line-height: 1.9; }
+        li { margin-bottom: 0.8rem; }
+        ol li { margin-bottom: 1rem; }
+        
+        .highlight-text {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        #navigation {
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #navigation button {
+            background-color: var(--correct-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #navigation button:disabled { background-color: #d8d8d8; cursor: not-allowed; }
+        #navigation button:not(:disabled):hover { opacity: 0.9; }
+        #page-indicator { font-size: 1rem; font-weight: bold; color: #475569; min-width: 100px; }
+        .toc-button { display: none; }
+
+        .quiz-container { text-align: center; width: 100%; }
+        #quiz-progress-bar-container { width: 100%; background-color: #eee; border-radius: 5px; margin-bottom: 1.5rem; }
+        #quiz-progress-bar { height: 10px; width: 0%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.3s; }
+        .quiz-question p { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; text-align: left; }
+        .answer-options { display: flex; flex-direction: column; gap: 0.7rem; }
+        .answer-btn { width: 100%; padding: 0.8rem; border: 2px solid #cbd5e1; background-color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 1rem; }
+        .answer-btn:hover:not(:disabled) { background-color: #f0f3f8; border-color: var(--secondary-color); }
+        .answer-btn.correct { background-color: #dcfce7; border-color: var(--correct-color); color: #166534; font-weight: bold; }
+        .answer-btn.incorrect { background-color: #fee2e2; border-color: var(--incorrect-color); color: #991b1b; }
+        .answer-btn:disabled { cursor: not-allowed; opacity: 0.9; }
+        #quiz-feedback { margin-top: 1rem; font-weight: bold; height: 2rem; }
+        #quiz-next-btn { background-color: var(--secondary-color); padding: 0.8rem 1.8rem; font-size: 1.1rem; visibility: hidden; }
+        #quiz-result { font-size: 1.8rem; font-weight: bold; color: var(--heading-color); }
+
+        @media (max-width: 1024px) {
+            #ebook-container {
+                flex-direction: column;
+                height: 98vh;
+            }
+            #toc-sidebar {
+                width: auto;
+                height: auto;
+                flex-shrink: 1;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            #toc-sidebar h2 { display: none; }
+            #toc-list {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 1rem;
+                scrollbar-width: thin;
+            }
+            #toc-list li {
+                flex-shrink: 0;
+                margin-right: 0.5rem;
+                margin-bottom: 0;
+            }
+            #page-content { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 768px) {
+            html { font-size: 100%; }
+            .content-layout { flex-direction: column; }
+            .content-image { width: 100px; margin-bottom: 1rem; }
+            #navigation button { padding: 0.6rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ebook-container">
+        <div id="toc-sidebar">
+            <h2>目錄</h2>
+            <ul id="toc-list"></ul>
+        </div>
+        <div id="main-content-area">
+            <div id="ebook-header">
+                <h1>人工智慧素養自學教材</h1>
+            </div>
+            <div id="page-content">
+                <div class="page active">
+                    <svg class="page-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm2-4h-2V7h2v6z" fill="var(--primary-color)"/></svg>
+                    <h2>AI 基礎知識</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>什麼是人工智慧(AI)?</h3>
+                            <p>人工智慧 (AI) 是一種讓電腦或機器能模仿人類思考、學習和解決問題的技術。簡單來說, AI 就像一個會思考的「機器大腦」。</p>
+                            <p>它依靠大量的資料和演算法來「學習」如何做事，而不是真的有情感或智慧。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.43.08.59-.18.59-.4v-1.5c-2.78.6-3.37-1.34-3.37-1.34-.39-.99-1-1.25-1-1.25-.78-.53.06-.52.06-.52.86.06 1.31.88 1.31.88.77 1.31 2 1 2.5.76.08-.6.3-1 .55-1.23-2.22-.25-4.56-1.11-4.56-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.7 0 3.84-2.34 4.68-4.57 4.93.31.27.58.8.58 1.62v2.34c0 .22.15.48.59.4A10.01 10.01 0 0 0 12 2z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>AI 的學習方式</h3>
+                    <ul>
+                        <li><strong class="highlight-text">機器學習</strong>：AI 從大量資料中尋找規律和模式，就像我們從經驗中學習一樣。</li>
+                        <li><strong class="highlight-text">深度學習</strong>：這是機器學習的一種，模仿人類大腦神經網路的結構，能處理更複雜的任務，如圖像辨識和自然語言理解。</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>AI在生活中的應用</h3>
+                    <div class="content-layout">
+                         <div class="content-image">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                        </div>
+                        <div class="content-text">
+                            <p>我們的生活早已充滿AI：</p>
+                            <ul>
+                                <li><b>語音助理</b>: 像 Siri 能聽懂我們說的話並回答問題。</li>
+                                <li><b>影音推薦</b>: YouTube 會推薦你可能喜歡的影片。</li>
+                                <li><b>醫療影像</b>: 在醫院，AI可以幫忙醫生分析X光片。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
+                    <h2>媒體素養</h2>
+                    <h3>判斷訊息的可信度</h3>
+                    <p>媒體素養指的是分析、評估各種媒體訊息的能力。當你在網路上看到一則消息時，可以從以下幾點來思考它的可信度：</p>
+                    <ul>
+                        <li><b>來源</b>: 消息從哪裡來？是知名的新聞媒體，還是沒聽過的網站？</li>
+                        <li><b>時間</b>: 消息是什麼時候發布的？是不是過時的舊聞？</li>
+                        <li><b>比對多方資訊</b>: 有沒有其他可靠的媒體也報導了同樣的消息？</li>
+                    </ul>
+                </div>
+                <div class="page">
+                    <h3>圖片與影片的辨偽</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <p>現代科技讓修改影像變得很簡單，特別是<strong class="highlight-text">深偽技術 (Deepfake)</strong>，可以製作出幾可亂真的假影片。你可以透過以下方式辨別：</p>
+                            <ul>
+                                <li><b>觀察細節</b>: 人物的眨眼頻率、臉部邊緣是否自然？</li>
+                                <li><b>反向搜尋</b>: 使用「以圖搜圖」功能查找影像來源。</li>
+                                <li><b>求證專家</b>: 請教老師，或查找事實查核機構的報告。</li>
+                            </ul>
+                        </div>
+                        <div class="content-image">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M21.71 20.29l-5.4-5.4a8 8 0 1 0-1.42 1.42l5.4 5.4a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42zM4 10a6 6 0 1 1 6 6 6 6 0 0 1-6-6z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M256 256c-39.7 0-77.1-15.6-105-43.4-27.9-27.9-43.4-65.3-43.4-105 0-39.7 15.6-77.1 43.4-105C178.9 2.6 216.3 0 256 0s77.1 15.6 105 43.4c27.9 27.9 43.4 65.3 43.4 105 0 39.7-15.6 77.1-43.4 105-27.9 27.8-65.3 43.4-105 43.4zm0 64c-39.7 0-77.1-15.6-105-43.4-27.9-27.9-43.4-65.3-43.4-105 0-39.7 15.6-77.1 43.4-105C178.9 66.6 216.3 64 256 64s77.1 15.6 105 43.4c27.9 27.9 43.4 65.3 43.4 105 0 39.7-15.6 77.1-43.4 105-27.9 27.8-65.3 43.4-105 43.4zm0 64c-39.7 0-77.1-15.6-105-43.4-27.9-27.9-43.4-65.3-43.4-105 0-39.7 15.6-77.1 43.4-105C178.9 130.6 216.3 128 256 128s77.1 15.6 105 43.4c27.9 27.9 43.4 65.3 43.4 105 0 39.7-15.6 77.1-43.4 105-27.9 27.8-65.3 43.4-105 43.4zM256 512c-39.7 0-77.1-15.6-105-43.4-27.9-27.9-43.4-65.3-43.4-105 0-39.7 15.6-77.1 43.4-105C178.9 258.6 216.3 256 256 256s77.1 15.6 105 43.4c27.9 27.9 43.4 65.3 43.4 105 0 39.7-15.6 77.1-43.4 105C333.1 496.4 295.7 512 256 512z"/></svg>
+                    <h2>數位足跡與個資保護</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>什麼是數位足跡?</h3>
+                            <p>我們上網做的任何事，例如按讚、分享照片、留言，都會留下紀錄，這些紀錄彙集起來就稱為「數位足跡」。它就像我們在網路上留下的腳印，可能會被長期保存。</p>
+                        </div>
+                        <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M12 2.5a5.5 5.5 0 0 1 3.09 9.8l-1.18 1.18a3.5 3.5 0 0 0-4.82 0l-1.18-1.18A5.5 5.5 0 0 1 12 2.5zm6.31 11.31l-1.18 1.18a3.5 3.5 0 0 0-4.82 0l-1.18-1.18a5.5 5.5 0 0 1 7.18-7.18l1.18-1.18a7.5 7.5 0 0 0-10.42 0l-1.18 1.18a5.5 5.5 0 0 1 7.18 7.18zM4.51 15a5.5 5.5 0 0 1 7.18-7.18l1.18-1.18a7.5 7.5 0 0 0-10.42 0l-1.18 1.18a5.5 5.5 0 0 1 3.24 7.18z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>如何保護自己？</h3>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <ul>
+                                <li><b>謹慎提供資料</b>: 在網站上註冊前，先想一想這個網站可信嗎？</li>
+                                <li><b>設定強密碼</b>: 使用包含<strong class="highlight-text">英文大小寫、數字和符號</strong>的複雜密碼。</li>
+                                <li><b>小心釣魚網站</b>: 不隨便點擊來路不明的連結或郵件附件。</li>
+                            </ul>
+                        </div>
+                         <div class="content-image">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <svg class="page-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path fill="var(--primary-color)" d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM17 11h-4v4h-2v-4H7V9h4V5h2v4h4v2z"/></svg>
+                    <h2>AI 咒語 - 提示工程入門</h2>
+                    <div class="content-layout">
+                        <div class="content-text">
+                            <h3>什麼是「AI 咒語」？</h3>
+                            <p>「AI 咒語」的正式名稱是「提示工程」，它指的是我們如何對 AI 下達指令。</p>
+                            <p>一個好的提示就像清楚的食譜，能讓廚師（AI）做出你想要的菜。指令越清楚、越具體，AI 就越能產生你滿意的結果。</p>
+                        </div>
+                         <div class="content-image">
+                           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="var(--primary-color)" d="M13 10h-2V8h2v2zm0 4h-2v-2h2v2zm5-1.5c0-2.06-1.34-3.8-3.19-4.43.24-.26.44-.56.59-.89.69-1.49-.15-3.18-1.64-3.87C12.3 2.5 10.61 3.35 10 4.84c-.15.33-.29.64-.42.94-1.85.63-3.19 2.37-3.19 4.43C6.39 12.33 5 13.92 5 15.75V20h14v-4.25c0-1.83-1.39-3.42-3.25-3.75z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="page">
+                    <h3>設計有效提示的技巧</h3>
+                    <ol>
+                        <li><b>明確且具體</b>: 不要只說「寫故事」，而是說「寫一篇100字，關於一隻想飛的貓的故事」。</li>
+                        <li><b>提供角色與情境</b>: 「<strong class="highlight-text">請你扮演一位資深太空人</strong>，用簡單的方式解釋黑洞是什麼。」</li>
+                        <li><b>提供範例</b>: 「這是一段我的寫作風格：[貼上範例]。請用這種風格，幫我把『貓咪在睡覺』這句話擴寫成一個段落。」</li>
+                    </ol>
+                </div>
+                <div class="page">
+                    <h2>最終學習評量</h2>
+                    <div class="quiz-container">
+                        <div id="quiz-progress-bar-container"><div id="quiz-progress-bar"></div></div>
+                        <div id="quiz-question-area"></div>
+                        <div id="quiz-feedback"></div>
+                        <button id="quiz-next-btn" onclick="nextQuestion()">下一題</button>
+                        <div id="quiz-result-area" style="display: none;">
+                            <div id="quiz-result"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="navigation">
+                <button id="prev-btn" onclick="changePage(-1)">上一頁</button>
+                <span id="page-indicator"></span>
+                <button class="toc-button" onclick="goToPage(1)">回目錄</button>
+                <button id="next-btn" onclick="changePage(1)">下一頁</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chapterMapping = [
+            { name: "AI 基礎知識", startPage: 1, endPage: 3 },
+            { name: "媒體素養", startPage: 4, endPage: 5 },
+            { name: "數位足跡與個資保護", startPage: 6, endPage: 7 },
+            { name: "AI 咒語 - 提示工程入門", startPage: 8, endPage: 9 },
+            { name: "最終學習評量", startPage: 10, endPage: 10 }
+        ];
+
+        let currentPageIndex = 1;
+        const pages = document.querySelectorAll('#page-content .page');
+        const totalPages = pages.length;
+        const pageIndicator = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocList = document.getElementById('toc-list');
+
+        function buildTOC() {
+            tocList.innerHTML = '';
+            chapterMapping.forEach((chapter, index) => {
+                const li = document.createElement('li');
+                li.textContent = chapter.name;
+                li.onclick = () => goToPage(chapter.startPage);
+                li.dataset.chapterIndex = index;
+                tocList.appendChild(li);
+            });
+        }
+        
+        function updateActiveTocItem() {
+            const tocItems = document.querySelectorAll('#toc-list li');
+            let activeChapterIndex = -1;
+            
+            chapterMapping.forEach((chapter, index) => {
+                if (currentPageIndex >= chapter.startPage && currentPageIndex <= chapter.endPage) {
+                    activeChapterIndex = index;
+                }
+            });
+
+            tocItems.forEach((item, index) => {
+                item.classList.toggle('active', index === activeChapterIndex);
+            });
+        }
+
+        function showPage(index) {
+            pages.forEach((page, i) => page.classList.toggle('active', i === (index -1)));
+            updateNavigation();
+            updateActiveTocItem();
+            if (index === chapterMapping[chapterMapping.length -1].startPage) {
+                startQuiz();
+            }
+        }
+
+        function updateNavigation() {
+            pageIndicator.textContent = `第 ${currentPageIndex} / ${totalPages} 頁`;
+            prevBtn.disabled = currentPageIndex === 1;
+            nextBtn.disabled = currentPageIndex === totalPages;
+        }
+
+        function changePage(direction) {
+            const newIndex = currentPageIndex + direction;
+            if (newIndex >= 1 && newIndex <= totalPages) {
+                currentPageIndex = newIndex;
+                showPage(newIndex);
+            }
+        }
+        
+        function goToPage(pageNumber) {
+            currentPageIndex = pageNumber;
+            showPage(pageNumber);
+        }
+
+        const quizData = [
+            { question: "1. 看到一則標題很誇張的新聞，例如「吃XX馬上致癌！」，你應該先做什麼？", options: ["立刻轉發給家人提醒他們", "半信半疑，但還是先照做", "保持懷疑，並查找其他可靠來源的資訊"], correct: 2 },
+            { question: "2. 什麼是「數位足跡」？", options: ["走路時留下的電子腳印", "在網路上所有活動留下的紀錄", "一種新的APP名稱"], correct: 1 },
+            { question: "3. 為了保護帳號安全，哪一種密碼最安全？", options: ["123456", "自己的生日", "GooD!pWd88#"], correct: 2 },
+            { question: "4. 所謂 AI 的「幻覺」是指什麼？", options: ["AI 會產生視覺特效", "AI 產生了不正確或憑空捏造的資訊", "AI 擁有了自我意識"], correct: 1 },
+            { question: "5. 當你想要 AI 幫你寫一首關於「夏天」的詩時，哪一個「提示」(咒語) 比較好？", options: ["寫詩", "寫一首關於夏天的詩", "請用三句話寫一首關於夏天海邊的詩，風格要活潑"], correct: 2 },
+            { question: "6. 在網路上看到一段政治人物的爭議影片，要如何初步判斷是否為深偽技術(Deepfake)？", options: ["影片畫質越好越不可能是假的", "觀察人物的眨眼頻率和臉部邊緣是否自然", "直接相信並分享"], correct: 1 },
+            { question: "7. 在註冊新遊戲帳號時，被要求提供家裡地址和爸媽的身分證號碼，你應該？", options: ["為了玩遊戲，全部都填寫", "覺得奇怪，和爸媽討論這個要求是否合理", "隨便亂填一個地址"], correct: 1 },
+            { question: "8. 1956 年的達特茅斯會議對 AI 發展有什麼重要意義？", options: ["發明了第一台電腦", "「人工智慧」這個名詞被正式提出", "開發出了 AlphaGo"], correct: 1 },
+            { question: "9. AI 會幫忙過濾垃圾郵件，這是 AI 的哪一種應用？", options: ["分類與判斷", "生成內容", "語音辨識"], correct: 0 },
+            { question: "10. 如果你一直使用 AI 幫你寫作業，可能會發生什麼問題？", options: ["會變得更聰明", "自己的思考和寫作能力可能會退步", "沒有任何問題"], correct: 1 }
+        ];
+        
+        let currentQuestionIndex = 0, score = 0, quizActive = false;
+
+        function startQuiz() {
+            if (quizActive) return;
+            quizActive = true;
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('quiz-question-area').style.display = 'block';
+            document.getElementById('quiz-result-area').style.display = 'none';
+            document.getElementById('quiz-feedback').style.display = 'block';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = quizData[currentQuestionIndex];
+            const questionArea = document.getElementById('quiz-question-area');
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+            document.getElementById('quiz-feedback').innerHTML = '';
+            
+            let optionsHtml = questionData.options.map((option, i) => 
+                `<button class="answer-btn" onclick="checkAnswer(${i}, this)">${option}</button>`
+            ).join('');
+            
+            questionArea.innerHTML = `<div class="quiz-question"><p>${questionData.question}</p><div class="answer-options">${optionsHtml}</div></div>`;
+        }
+
+        function checkAnswer(selectedIndex, button) {
+            const questionData = quizData[currentQuestionIndex];
+            const optionsContainer = button.parentElement;
+            const feedbackEl = document.getElementById('quiz-feedback');
+            
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === questionData.correct) {
+                button.classList.add('correct');
+                feedbackEl.textContent = '答對了！';
+                feedbackEl.style.color = 'var(--correct-color)';
+                score++;
+            } else {
+                button.classList.add('incorrect');
+                optionsContainer.children[questionData.correct].classList.add('correct');
+                feedbackEl.textContent = '答錯了！';
+                feedbackEl.style.color = 'var(--incorrect-color)';
+            }
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.textContent = (currentQuestionIndex === quizData.length - 1) ? "顯示總分" : "下一題";
+            nextBtn.style.visibility = 'visible';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                displayQuestion();
+            } else {
+                showFinalScore();
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('quiz-question-area').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-feedback').style.display = 'none';
+            document.getElementById('quiz-progress-bar').style.width = '100%';
+
+            const resultArea = document.getElementById('quiz-result-area');
+            document.getElementById('quiz-result').textContent = `你的總分是：${score} / ${quizData.length} 分！`;
+            resultArea.style.display = 'block';
+            quizActive = false;
+        }
+        
+        // Initial setup
+        buildTOC();
+        showPage(currentPageIndex);
+    </script>
+
+</body>
+</html>

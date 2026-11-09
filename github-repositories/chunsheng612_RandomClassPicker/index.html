@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸運抽獎系統 v3.1 - 深空主題版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        /* 【新】深色主題色彩變數 */
+        :root {
+            --primary-color: #367BFF; /* 醒目的藍色 */
+            --background-start: #0A192F; /* 深海軍藍 */
+            --background-end: #172A46; /* 略淺的藍灰色 */
+            --card-bg: rgba(10, 25, 47, 0.75); /* 深藍色玻璃效果 */
+            --card-border: rgba(255, 255, 255, 0.15);
+            --text-color-primary: #ccd6f6; /* 柔和的亮白色 */
+            --text-color-secondary: #8892b0; /* 灰藍色 */
+            --input-bg: rgba(255, 255, 255, 0.07);
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --control-border-radius: 14px;
+            --danger-color: #e91e63;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            color: var(--text-color-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* 【新】深藍色漸層背景 */
+            background: linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
+            background-attachment: fixed;
+            perspective: 1200px;
+        }
+        .main-wrapper {
+            position: relative; width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden; padding: 20px; padding-bottom: 100px;
+        }
+        .creator-credit {
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); color: #1d1d1f; padding: 10px 20px; border-radius: 14px; font-size: 14px; font-weight: 500; text-decoration: none; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 1001;
+        }
+        .creator-credit:hover { transform: translateY(-4px) translateX(-50%); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18); }
+        .container { max-width: 600px; margin: 0 auto; transition: all 0.5s ease; }
+        .header { text-align: center; margin-bottom: 30px; position: relative; }
+        h1 { font-weight: 600; font-size: 2.8em; color: #FFFFFF; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); }
+        h2 { font-weight: 600; color: var(--text-color-primary); margin: 10px 0 20px; text-align: center; }
+        
+        /* --- 頁面管理 --- */
+        .page { display: none; animation: fadeInPage 0.6s ease forwards; }
+        .page.active { display: block; }
+        @keyframes fadeInPage { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 卡片與通用元件 --- */
+        .card { background: var(--card-bg); backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%); border-radius: 24px;  border: 1px solid var(--card-border); box-shadow: 0 12px 35px var(--shadow-color); padding: 30px; margin-bottom: 30px; }
+        input, textarea { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); padding: 14px 18px; font-size: 1em; width: 100%; transition: all 0.3s ease; -webkit-appearance: none; font-family: inherit; border-radius: var(--control-border-radius); color: var(--text-color-primary); }
+        textarea { resize: vertical; min-height: 80px; }
+        input::placeholder, textarea::placeholder { color: var(--text-color-secondary); }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(54, 123, 255, 0.4); }
+        button { padding: 14px 22px; border: none; font-weight: 600; cursor: pointer; transition: all 0.3s ease; border-radius: var(--control-border-radius); }
+        button.btn-primary { background: var(--primary-color); color: white; box-shadow: 0 4px 15px rgba(54, 123, 255, 0.3); }
+        button.btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        button.btn-primary:active { transform: translateY(0); filter: brightness(0.95); }
+        button.btn-primary:disabled { background: #5a5a5f; color: #8892b0; cursor: not-allowed; box-shadow: none; transform: none; filter: none; }
+        button.btn-glass { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-color-secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        button.btn-glass:hover { background: rgba(255, 255, 255, 0.15); color: var(--text-color-primary); transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
+        button:disabled.btn-glass { background: rgba(255, 255, 255, 0.05); color: #5a5a5f; cursor: not-allowed; transform: none; box-shadow: none; }
+        .control-group label { font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 8px; font-weight: 500; display: block; }
+        .section-divider { border-top: 1px solid var(--card-border); padding-top: 25px; margin-top: 25px; }
+        
+        /* --- 1. 首頁: 班級選擇 --- */
+        #class-selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .class-slot { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--card-border); padding: 20px; text-align: center; font-weight: 600; font-size: 1.2em; cursor: pointer; transition: all 0.3s ease; position: relative; color: var(--text-color-primary); }
+        .class-slot:hover { transform: translateY(-5px); box-shadow: 0 10px 25px var(--shadow-color); border-color: rgba(255, 255, 255, 0.3); }
+        .class-slot.empty { color: var(--text-color-secondary); border-style: dashed; }
+        .class-slot-name { pointer-events: none; }
+        .delete-slot-btn { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,0.2); color: white; border: none; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.7; }
+        .delete-slot-btn:hover { background: var(--danger-color); opacity: 1; transform: scale(1.1); }
+
+        /* --- 2. 設定頁 --- */
+        .controls { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: flex-end; margin-bottom: 25px; }
+        .quick-add-grid { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end; margin-top: 15px; }
+        #name-list-container { max-height: 180px; overflow-y: auto; padding-right: 10px; margin-top: 20px; }
+        .name-tag { display: inline-flex; align-items: center; background-color: var(--input-bg); border-radius: var(--control-border-radius); padding: 8px 12px; margin: 4px; font-weight: 500; color: var(--text-color-primary); border: 1px solid rgba(255,255,255,0.1); animation: fadeIn 0.3s ease forwards; }
+        .delete-name { margin-left: 8px; width: 18px; height: 18px; background-color: rgba(255,255,255,0.1); border-radius: 50%; border:none; color: var(--text-color-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 18px; transition: all 0.2s; }
+        .delete-name:hover { background-color: var(--danger-color); color: white; transform: scale(1.1); }
+        .drawn-list-container { padding: 15px 20px; background-color: rgba(0,0,0,0.2); border-radius: var(--control-border-radius); }
+        .drawn-list { font-weight: 500; color: var(--text-color-primary); line-height: 1.6; max-height: 100px; overflow-y: auto; }
+        .setup-actions { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-top: 25px; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        /* --- 【新增】已抽出名單的標題容器樣式 --- */
+        .drawn-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px; /* 與下方列表間隔 */
+        }
+        .drawn-list-header h2 {
+            margin: 0; /* 移除 h2 預設的 margin */
+        }
+
+        /* --- 3. 抽獎頁 --- */
+        #spinner-screen .card { padding: 15px; }
+        #wheel-wrapper { position: relative; max-width: 450px; width: 100%; margin: 0 auto; aspect-ratio: 1 / 1; }
+        #wheel-flapper { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 50px; z-index: 20; clip-path: polygon(50% 100%, 0 0, 100% 0); background: linear-gradient(45deg, #ff5f6d, #ffc371); filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        #wheel-canvas { width: 100%; height: 100%; transition: transform 7s cubic-bezier(0.1, 0.8, 0.2, 1); }
+        #wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 15%; height: 15%; z-index: 10; background: radial-gradient(circle, #f0f0f0, #c0c0c0); border-radius: 50%; box-shadow: 0 0 15px rgba(0,0,0,0.2), inset 0 3px 5px rgba(0,0,0,0.15); }
+        #back-to-setup-btn { margin-top: 20px; }
+
+        /* --- 中獎彈出視窗 --- */
+        #winner-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; opacity: 0; pointer-events: none; background: radial-gradient(circle, #4a4a4a 0%, #1e1e1e 100%); transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        #winner-screen.show { opacity: 1; pointer-events: auto; }
+        #winner-screen .winner-content { animation: popIn 1s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; opacity: 0; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8) translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .winner-title { font-size: 2.5em; font-weight: 300; color: rgba(255, 255, 255, 0.7); margin: 0; letter-spacing: 2px; }
+        #winner-name { font-size: clamp(3em, 10vw, 8em); font-weight: 700; margin: 10px 0 40px; color: transparent; background: linear-gradient(45deg, #ffc371, #ff5f6d); -webkit-background-clip: text; background-clip: text; text-shadow: 0 5px 25px rgba(255, 95, 109, 0.4); }
+        #close-winner-btn { font-size: 1em; padding: 14px 30px; transform: scale(1); }
+        .confetti { position: absolute; width: 10px; height: 20px; top: -50px; opacity: 0; animation: fall 5s linear infinite; }
+        @keyframes fall { 0% { transform: translateY(0vh) rotateZ(0); opacity: 1; } 100% { transform: translateY(110vh) rotateZ(720deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="container">
+            <!-- HTML 結構與 v2.9 完全相同 -->
+            <div id="home-screen" class="page">
+                <div class="header">
+                    <h1>選擇或建立班級／活動</h1>
+                </div>
+                <div id="class-selection-grid"></div>
+            </div>
+
+            <div id="setup-screen" class="page">
+                <div class="header">
+                    <h1 id="setup-title">編輯名單</h1>
+                </div>
+                <div class="card">
+                    <div class="control-group">
+                        <label for="class-name-input">班級 / 活動名稱</label>
+                        <input type="text" id="class-name-input" placeholder="例如：三年二班期末抽獎">
+                    </div>
+                </div>
+                
+                <!-- 【修改】已抽出名單卡片，新增標題容器與移回按鈕 -->
+                <div class="card">
+                    <div class="drawn-list-header">
+                        <h2>已抽出名單</h2>
+                        <button id="move-all-back-btn" class="btn-glass">一鍵移回全部</button>
+                    </div>
+                    <div class="drawn-list-container">
+                        <div id="drawnList" class="drawn-list">尚未抽出任何名單</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>待抽名單</h2>
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="name-input">新增單筆名單</label>
+                            <input type="text" id="name-input" placeholder="輸入姓名後按下 Enter 或新增">
+                        </div>
+                        <button id="add-btn" class="btn-primary">新增</button>
+                    </div>
+                    <div class="section-divider">
+                        <div class="control-group">
+                            <label for="bulk-input">快速新增 (每行一個)</label>
+                            <textarea id="bulk-input" placeholder="從 Excel 或記事本貼上名單..."></textarea>
+                            <div class="quick-add-grid">
+                                <button id="import-bulk-btn" class="btn-primary" style="grid-column: 1 / -1;">匯入名單</button>
+                                <input type="number" id="seat-number-input" placeholder="輸入人數產生座號">
+                                <button id="generate-seats-btn" class="btn-glass">產生</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="name-list-container"></div>
+                </div>
+                <div class="setup-actions">
+                    <button id="back-to-home-btn" class="btn-glass">返回首頁</button>
+                    <button id="clear-list-btn" class="btn-glass">清空資料</button>
+                    <button id="start-draw-btn" class="btn-primary">開始抽獎</button>
+                </div>
+            </div>
+
+            <div id="spinner-screen" class="page">
+                <div class="header">
+                    <h1>幸運大轉盤</h1>
+                </div>
+                <div class="card">
+                    <h2>已抽出名單</h2>
+                    <div class="drawn-list-container">
+                        <div id="drawnListSpinner" class="drawn-list">尚未抽出任何名單</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div id="wheel-wrapper">
+                        <div id="wheel-flapper"></div>
+                        <canvas id="wheel-canvas" width="500" height="500"></canvas>
+                        <div id="wheel-center"></div>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <button id="spin-btn" class="btn-primary" style="padding: 15px 40px; font-size: 1.2em;">旋轉！</button>
+                    <button id="back-to-setup-btn" class="btn-glass">返回編輯</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="winner-screen">
+        <div id="confetti-container"></div>
+        <div class="winner-content">
+            <h2 class="winner-title">恭喜中獎！</h2>
+            <p id="winner-name">獲獎者</p>
+            <button id="close-winner-btn" class="btn-glass">返回轉盤</button>
+        </div>
+    </div>
+
+    <a href="https://www.facebook.com/FunFun.AI.Teacher/" target="_blank" rel="noopener noreferrer" class="creator-credit">Created by 方方老師</a>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 元素選擇 ---
+        const pages = { home: document.getElementById('home-screen'), setup: document.getElementById('setup-screen'), spinner: document.getElementById('spinner-screen') };
+        const winnerScreen = document.getElementById('winner-screen');
+        const creatorCredit = document.querySelector('.creator-credit');
+        const classSelectionGrid = document.getElementById('class-selection-grid');
+        const setupTitle = document.getElementById('setup-title');
+        const classNameInput = document.getElementById('class-name-input');
+        const drawnListEl = document.getElementById('drawnList');
+        const nameInput = document.getElementById('name-input');
+        const addBtn = document.getElementById('add-btn');
+        const bulkInput = document.getElementById('bulk-input');
+        const importBulkBtn = document.getElementById('import-bulk-btn');
+        const seatNumberInput = document.getElementById('seat-number-input');
+        const generateSeatsBtn = document.getElementById('generate-seats-btn');
+        const nameListContainer = document.getElementById('name-list-container');
+        const backToHomeBtn = document.getElementById('back-to-home-btn');
+        const clearListBtn = document.getElementById('clear-list-btn');
+        const startDrawBtn = document.getElementById('start-draw-btn');
+        const drawnListSpinnerEl = document.getElementById('drawnListSpinner');
+        const wheelCanvas = document.getElementById('wheel-canvas');
+        const ctx = wheelCanvas.getContext('2d');
+        const spinBtn = document.getElementById('spin-btn');
+        const backToSetupBtn = document.getElementById('back-to-setup-btn');
+        const winnerName = document.getElementById('winner-name');
+        const closeWinnerBtn = document.getElementById('close-winner-btn');
+        const confettiContainer = document.getElementById('confetti-container');
+        const moveAllBackBtn = document.getElementById('move-all-back-btn'); // 【新增】選擇新按鈕
+
+        // --- 狀態變數 ---
+        let currentSlotIndex = -1;
+        let classSlots = Array(9).fill(null);
+        let participants = [];
+        let drawnItems = [];
+        const wheelColors = ['#ffc371', '#ff5f6d', '#ff9a8b', '#f9d423', '#a2d2ff', '#bde0fe', '#ffafcc', '#cdb4db'];
+
+        // --- 核心功能 ---
+        const showPage = (pageKey) => { Object.values(pages).forEach(p => p.classList.remove('active')); if (pages[pageKey]) { pages[pageKey].classList.add('active'); } };
+        const saveAllSlots = () => { localStorage.setItem('lotterySystemSlots_v3.0', JSON.stringify(classSlots)); };
+        const loadAllSlots = () => {
+            const savedData = localStorage.getItem('lotterySystemSlots_v3.0');
+            if (savedData) { classSlots = JSON.parse(savedData); } else { classSlots = Array(9).fill(null); }
+        };
+        const saveCurrentSlot = () => { if (currentSlotIndex === -1) return; classSlots[currentSlotIndex] = { className: classNameInput.value.trim() || `班級／活動 ${currentSlotIndex + 1}`, participants: participants, drawnItems: drawnItems }; saveAllSlots(); };
+        const renderDrawnLists = () => { const textContent = drawnItems.length === 0 ? "尚未抽出任何名單" : drawnItems.join("、 "); drawnListEl.textContent = textContent; drawnListSpinnerEl.textContent = textContent; };
+
+        // --- 首頁功能 ---
+        const renderHomeScreen = () => {
+            classSelectionGrid.innerHTML = '';
+            classSlots.forEach((slot, index) => {
+                const slotEl = document.createElement('div');
+                slotEl.className = 'class-slot';
+                slotEl.dataset.index = index;
+                if (slot) {
+                    slotEl.innerHTML = `<span class="class-slot-name">${slot.className}</span><button class="delete-slot-btn" data-index="${index}">×</button>`;
+                } else {
+                    slotEl.classList.add('empty');
+                    slotEl.innerHTML = `<span class="class-slot-name">+ 建立新班級／活動</span>`;
+                }
+                classSelectionGrid.appendChild(slotEl);
+            });
+        };
+        classSelectionGrid.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('delete-slot-btn')) {
+                e.stopPropagation();
+                const index = parseInt(target.dataset.index, 10);
+                if (confirm(`確定要刪除「${classSlots[index].className}」這個班級／活動嗎？資料將無法復原。`)) {
+                    classSlots[index] = null;
+                    saveAllSlots();
+                    renderHomeScreen();
+                }
+            } else if (target.classList.contains('class-slot')) {
+                currentSlotIndex = parseInt(target.dataset.index, 10);
+                const currentData = classSlots[currentSlotIndex] || { className: '', participants: [], drawnItems: [] };
+                classNameInput.value = currentData.className;
+                participants = currentData.participants;
+                drawnItems = currentData.drawnItems;
+                renderSetupPage();
+                showPage('setup');
+            }
+        });
+
+        // --- 設定頁功能 ---
+        const renderSetupPage = () => {
+            const currentData = classSlots[currentSlotIndex];
+            setupTitle.textContent = currentData && currentData.className ? currentData.className : '建立新班級／活動';
+            nameListContainer.innerHTML = '';
+            if (participants.length === 0) {
+                nameListContainer.innerHTML = `<p style="text-align:center; color:var(--text-color-secondary);">待抽名單是空的</p>`;
+            } else {
+                [...new Set(participants)].forEach((name) => {
+                    const nameTag = document.createElement('div');
+                    nameTag.className = 'name-tag';
+                    nameTag.innerHTML = `<span>${name}</span><button class="delete-name" data-name="${name}">×</button>`;
+                    nameListContainer.appendChild(nameTag);
+                });
+            }
+            renderDrawnLists();
+            startDrawBtn.disabled = participants.length < 2;
+            // --- 【修改】根據已抽名單數量，決定「移回」按鈕是否可按 ---
+            moveAllBackBtn.disabled = drawnItems.length === 0;
+        };
+        const addName = () => { const name = nameInput.value.trim(); if (name && !participants.includes(name)) { participants.push(name); renderSetupPage(); saveCurrentSlot(); } nameInput.value = ''; nameInput.focus(); };
+        nameListContainer.addEventListener('click', (e) => { if (e.target.classList.contains('delete-name')) { const nameToDelete = e.target.dataset.name; participants = participants.filter(name => name !== nameToDelete); renderSetupPage(); saveCurrentSlot(); } });
+        clearListBtn.addEventListener('click', () => { if (confirm('確定要清空此班級／活動的所有資料嗎？(包含名稱、待抽與已抽名單)')) { participants = []; drawnItems = []; classNameInput.value = ''; saveCurrentSlot(); renderSetupPage(); } });
+        
+        // --- 【新增】「一鍵移回全部」按鈕的事件監聽 ---
+        moveAllBackBtn.addEventListener('click', () => {
+            if (drawnItems.length > 0 && confirm('確定要將所有已抽出的人員移回待抽名單嗎？')) {
+                // 將所有已抽出的項目加回待抽列表
+                participants = [...new Set([...participants, ...drawnItems])];
+                // 清空已抽出列表
+                drawnItems = [];
+                // 重新渲染設定頁面並保存狀態
+                renderSetupPage();
+                saveCurrentSlot();
+            }
+        });
+
+        classNameInput.addEventListener('change', saveCurrentSlot);
+        addBtn.addEventListener('click', addName);
+        nameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addName(); });
+        importBulkBtn.addEventListener('click', () => { const namesFromText = bulkInput.value.trim().split('\n').map(n => n.trim()).filter(Boolean); if (namesFromText.length > 0) { participants = [...new Set([...participants, ...namesFromText])]; renderSetupPage(); saveCurrentSlot(); bulkInput.value = ''; } });
+        generateSeatsBtn.addEventListener('click', () => { const count = parseInt(seatNumberInput.value, 10); if (count > 0) { const seatNumbers = Array.from({length: count}, (_, i) => `${i + 1}號`); participants = [...new Set([...participants, ...seatNumbers])]; renderSetupPage(); saveCurrentSlot(); seatNumberInput.value = ''; } });
+        backToHomeBtn.addEventListener('click', () => { saveCurrentSlot(); renderHomeScreen(); showPage('home'); });
+        startDrawBtn.addEventListener('click', () => { if(participants.length < 2) { alert('待抽名單至少需要兩位參與者才能開始抽獎！'); return; } saveCurrentSlot(); renderDrawnLists(); drawWheel(); showPage('spinner'); });
+        
+        // --- 抽獎頁功能 ---
+        const drawWheel = () => {
+            const numOptions = participants.length; if (numOptions === 0) return;
+            const arcSize = 2 * Math.PI / numOptions; const centerX = wheelCanvas.width / 2; const centerY = wheelCanvas.height / 2; const radius = wheelCanvas.width / 2 - 15;
+            ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height); ctx.save(); ctx.translate(centerX, centerY);
+            participants.forEach((name, i) => {
+                const angle = i * arcSize;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, angle, angle + arcSize); ctx.closePath(); ctx.fillStyle = wheelColors[i % wheelColors.length]; ctx.fill();
+                ctx.save(); ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0,0); ctx.rotate(angle + arcSize); ctx.lineTo(radius, 0); ctx.stroke(); ctx.restore();
+                ctx.save(); ctx.rotate(angle + arcSize / 2); ctx.textAlign = "right";
+                // 【新】轉盤文字使用亮色
+                ctx.fillStyle = "#FFFFFF"; 
+                ctx.font = `bold ${numOptions > 15 ? 14 : 18}px Noto Sans TC`; ctx.textBaseline = 'middle'; ctx.fillText(name, radius * 0.9, 0); ctx.restore();
+                ctx.save(); ctx.rotate(angle + arcSize); ctx.beginPath(); ctx.arc(radius - 5, 0, 4, 0, 2 * Math.PI); ctx.fillStyle = '#C0C0C0'; ctx.fill(); ctx.strokeStyle = '#808080'; ctx.stroke(); ctx.restore();
+            });
+            ctx.beginPath(); ctx.arc(0, 0, radius + 5, 0, 2 * Math.PI); ctx.strokeStyle = '#D4AF37'; ctx.lineWidth = 10; ctx.stroke();
+            ctx.restore();
+        };
+
+        spinBtn.addEventListener('click', () => {
+            spinBtn.disabled = true; backToSetupBtn.disabled = true;
+            const spinDegrees = Math.random() * 2000 + 5000;
+            const currentRotation = parseFloat(wheelCanvas.style.transform.replace(/[^0-9.-]/g, '')) || 0;
+            const totalRotation = currentRotation + spinDegrees;
+            wheelCanvas.style.transform = `rotate(${totalRotation}deg)`;
+            setTimeout(() => {
+                const finalAngle = totalRotation % 360; const flapperPosition = 270; const relativeAngle = 360 - finalAngle; const winningAngle = (flapperPosition + relativeAngle) % 360; const arcSizeDegrees = 360 / participants.length; const winnerIndex = Math.floor(winningAngle / arcSizeDegrees); const winner = participants[winnerIndex];
+                drawnItems.push(winner);
+                participants.splice(winnerIndex, 1);
+                saveCurrentSlot();
+                renderDrawnLists(); 
+                showWinner(winner);
+                spinBtn.disabled = false; backToSetupBtn.disabled = false;
+            }, 7500);
+        });
+        backToSetupBtn.addEventListener('click', () => { renderSetupPage(); showPage('setup'); });
+
+        // --- 中獎視窗 & 初始化 ---
+        const showWinner = (winner) => { winnerName.textContent = winner; createConfetti(); winnerScreen.classList.add('show'); creatorCredit.style.display = 'none'; };
+        closeWinnerBtn.addEventListener('click', () => {
+            winnerScreen.classList.remove('show');
+            setTimeout(() => {
+                confettiContainer.innerHTML = '';
+                creatorCredit.style.display = 'block'; 
+                drawWheel();
+                if (participants.length < 2) {
+                    spinBtn.disabled = true;
+                }
+            }, 800);
+        });
+        const createConfetti = () => { /* 此函式無變更 */
+            confettiContainer.innerHTML = ''; const confettiCount = 150; const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#ffeb3b', '#ffc107', '#ff9800'];
+            for (let i = 0; i < confettiCount; i++) { const confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.left = `${Math.random() * 100}%`; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; confetti.style.animationDelay = `${Math.random() * 5}s`; confetti.style.width = `${Math.random() * 8 + 5}px`; confetti.style.height = `${Math.random() * 15 + 8}px`; confetti.style.opacity = Math.random() * 0.5 + 0.5; confettiContainer.appendChild(confetti); }
+        };
+        const initialize = () => { loadAllSlots(); renderHomeScreen(); showPage('home'); };
+        initialize();
+    });
+    </script>
+</body>
+</html>

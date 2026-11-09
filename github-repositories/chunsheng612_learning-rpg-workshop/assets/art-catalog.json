@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "projectId": "{{slug}}",
+  "pathBase": "project-root",
+  "fieldGuide": {
+    "items": "每項是一個獨立交付素材；初始化沒有已完成素材。",
+    "id": "穩定 ID，例如 H00、M00、E001 或 B00",
+    "role": "用途，例如 hero-sheet、enemy-sheet、background、portrait",
+    "referenceIds": "角色或風格母版 ID 陣列",
+    "prompt": "該素材的實際提示詞",
+    "spec": "aspectRatio、width、height、transparent、facing；圖集另有 columns、rows、frameOrder、anchor",
+    "paths": "source、runtime，相對於專案根目錄",
+    "progress": "generation: pending/generated/blocked；review: pending/passed/changes-needed；integration: pending/integrated；verification: pending/passed/failed",
+    "consumer": "讀取素材的元件或 manifest",
+    "issues": "未完成事項與失敗原因陣列"
+  },
+  "items": []
+}

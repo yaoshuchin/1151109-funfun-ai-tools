@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素森活村 - 冒險啟程</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* --- 全局樣式 --- */
+        :root {
+            --pixel-font: 'Press Start 2P', cursive;
+            --dark-wood-border: #412A1A;
+            --dark-wood-shadow: #2A1C11;
+            --medium-wood-bg: #785030;
+            --light-wood-hover: #9A6A42;
+            --text-light: #FFF0A5;
+            --text-dark: #3B1F0A;
+            --feedback-correct-bg: rgba(90, 180, 90, 0.85);
+            --feedback-incorrect-bg: rgba(200, 80, 80, 0.85);
+            --feedback-border: #333;
+            --grey-bg-for-1png: #7f7f7f;
+            --base-font-size: 18px;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #2c1e16;
+            font-family: var(--pixel-font);
+            color: #E0D6C1;
+            font-size: var(--base-font-size);
+        }
+
+        #game-world {
+            position: relative;
+            width: 1000px;
+            height: 1000px;
+            border: 5px solid var(--dark-wood-border);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            background-color: #333;
+            overflow: hidden;
+        }
+
+        /* --- 得分顯示樣式 --- */
+        #score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--text-light);
+            padding: 10px 20px;
+            border: 3px solid var(--dark-wood-border);
+            box-shadow: 4px 4px 0px var(--dark-wood-shadow);
+            font-family: var(--pixel-font);
+            font-size: 1.1em;
+            z-index: 500;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        #score-display.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        #score-value {
+            color: yellow;
+            font-weight: bold;
+            display: inline-block; /* For transform animation */
+            transition: transform 0.2s ease-out;
+        }
+        #score-value.updated {
+            transform: scale(1.3) rotate(-5deg);
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out, visibility 0s linear 0.4s;
+            transform: scale(0.95);
+            background-size: cover; background-position: center;
+            image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;
+            box-sizing: border-box;
+        }
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-3px, -3px) scale(1); } /* Increased shake */
+            20%, 40%, 60%, 80% { transform: translate(3px, 3px) scale(1); }
+        }
+        .screen.shake-effect {
+            animation: screenShake 0.3s linear;
+        }
+         .screen.shake-effect-strong { /* For Boss defeat */
+            animation: screenShake 0.5s linear 2; /* Shake longer and repeat */
+        }
+
+
+        /* --- 起始畫面 --- */
+        #start-screen { background-color: var(--grey-bg-for-1png); z-index: 250; }
+        #cover-image-start {
+            width: 80%; height: 70%; max-width: 800px; max-height: 700px;
+            border: 8px solid var(--dark-wood-border); box-shadow: 6px 6px 0px var(--dark-wood-shadow);
+            margin-bottom: 40px; display: flex; justify-content: center; align-items: center;
+            background-color: var(--grey-bg-for-1png);
+            opacity: 0;
+            transform: scale(0.8) rotate(-5deg);
+            animation: fadeInCover 1s 0.5s forwards cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        @keyframes fadeInCover {
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        #cover-image-start img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
+        .pixel-button-large {
+            font-family: var(--pixel-font); background-color: var(--medium-wood-bg); color: var(--text-light);
+            border: 4px solid var(--dark-wood-border); padding: 20px 40px; font-size: 1.5em;
+            text-transform: uppercase; cursor: pointer; box-shadow: 5px 5px 0px var(--dark-wood-shadow);
+            transition: all 0.05s ease-in-out;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUpButtonStart 0.8s 1.2s forwards cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        @keyframes fadeInUpButtonStart {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .pixel-button-large:hover { background-color: var(--light-wood-hover); color: #FFFFFF; }
+        .pixel-button-large:active { background-color: #604028; box-shadow: 2px 2px 0px var(--dark-wood-shadow); transform: translate(3px, 3px); }
+
+        /* --- 故事畫面 --- */
+        #storyContainer { background-image: url('2.png'); z-index: 200; }
+        #storyContainer.fade-out { opacity: 0; visibility: hidden; transform: scale(1.1); transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out, visibility 0s linear 0.5s; }
+        .story-text-box { background-color: rgba(0, 0, 0, 0.7); color: #E0D6C1; padding: 30px 40px; border: 3px solid #4A3B31; box-shadow: 0 0 0 3px rgba(0,0,0,0.7), 6px 6px 0px #2a1d14; max-width: 75%; text-align: left; line-height: 2; font-size: 1.3em; }
+        .story-text-box p { margin-bottom: 1.5em; opacity: 0; }
+        .story-text-box p:nth-child(1) { animation: fadeInText 0.8s 0.5s forwards; } .story-text-box p:nth-child(2) { animation: fadeInText 0.8s 2s forwards; } .story-text-box p:nth-child(3) { animation: fadeInText 0.8s 3.5s forwards; } .story-text-box p:nth-child(4) { animation: fadeInText 0.8s 5s forwards; }
+        @keyframes fadeInText { to { opacity: 1; } }
+        #continueButton { font-family: var(--pixel-font); background-color: #6F4E37; color: #FFF8DC; border: 3px solid #3D2B1F; padding: 15px 30px; font-size: 1.2em; text-transform: uppercase; cursor: pointer; box-shadow: 4px 4px 0px #271C14; margin-top: 35px; opacity: 0; animation: fadeInButton 1s 6.5s forwards; transition: all 0.1s ease-in-out; }
+        @keyframes fadeInButton { to { opacity: 1; } }
+        #continueButton:hover { background-color: #8A6A4A; color: #FFFFFF; }
+        #continueButton:active { background-color: #5A3D2B; box-shadow: 2px 2px 0px #271C14; transform: translate(2px, 2px); }
+
+        /* --- 地圖畫面 --- */
+        #map-screen { justify-content: flex-start; z-index: 100; }
+        #map-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+        #map-markers-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .map-marker { position: absolute; width: 35px; height: 35px; background-color: gold; border-radius: 50%; border: 3px solid darkorange; box-shadow: 0 0 12px yellow, 0 0 6px gold inset; cursor: pointer; transform: translate(-50%, -50%); animation: markerPulse 1.5s infinite alternate ease-in-out, markerGlow 1.5s infinite alternate ease-in-out; transition: background-color 0.3s, box-shadow 0.3s, transform 0.3s, opacity 0.3s; z-index: 110; }
+        .map-marker::after { content: '?'; font-family: var(--pixel-font); color: var(--dark-wood-border); font-size: 18px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
+        .map-marker.completed { background-color: grey; box-shadow: none; animation: none; cursor: default; opacity: 0.6; }
+        .map-marker.completed::after { content: '✓'; color: lightgreen; font-size: 20px; text-shadow: 1px 1px 0px rgba(0,0,0,0.5); }
+        .map-marker:not(.completed):hover {
+            transform: translate(-50%, -50%) scale(1.35) rotate(10deg);
+            box-shadow: 0 0 25px yellow, 0 0 15px gold inset, 0 0 5px darkorange;
+        }
+        @keyframes markerPulse { from { transform: translate(-50%, -50%) scale(0.9); } to { transform: translate(-50%, -50%) scale(1.1); } }
+        @keyframes markerGlow { from { box-shadow: 0 0 8px yellow, 0 0 4px gold inset; } to { box-shadow: 0 0 15px yellow, 0 0 8px gold inset; } }
+        #marker-1 { top: 25%; left: 20%; } #marker-2 { top: 35%; left: 50%; } #marker-3 { top: 15%; left: 75%; } #marker-4 { top: 50%; left: 30%; } #marker-5 { top: 60%; left: 65%; } #marker-6 { top: 80%; left: 15%; } #marker-7 { top: 75%; left: 40%; } #marker-8 { top: 85%; left: 80%; } #marker-9 { top: 42%; left: 85%; } #marker-10 { top: 58%; left: 10%; } #marker-11 { top: 10%; left: 10%; } #marker-12 { top: 90%; left: 50%; } #marker-13 { top: 20%; left: 35%; } #marker-14 { top: 65%; left: 88%; } #marker-15 { top: 30%; left: 80%; } #marker-16 { top: 55%; left: 45%; } #marker-17 { top: 70%; left: 25%; } #marker-18 { top: 90%; left: 20%; } #marker-19 { top: 18%; left: 55%; } #marker-20 { top: 88%; left: 68%; }
+        #ui-top-bar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.6); padding: 12px 25px; border: 3px solid var(--dark-wood-border); box-shadow: 4px 4px 0px var(--dark-wood-shadow); z-index: 120; font-size: 1.2em; color: var(--text-light); }
+        #power-counter {
+            display: inline-block;
+            transition: transform 0.2s ease-out;
+        }
+        #power-counter.updated {
+            transform: scale(1.2) rotate(3deg);
+        }
+        #power-counter span { color: lightgreen; font-weight: bold; }
+
+        /* --- 答題畫面 --- */
+        #quiz-screen { z-index: 150; justify-content: flex-start; background-color: #3a2d24; }
+        #quiz-top-section { width: 100%; height: 50%; background-color: var(--grey-bg-for-1png); background-size: cover; background-repeat: no-repeat; background-position: center; border-bottom: 5px solid var(--dark-wood-border); box-sizing: border-box; position: relative; }
+        #quiz-bottom-section { width: 100%; height: 50%; background-color: #603813; padding: 25px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: space-around; border-top: 5px solid var(--dark-wood-border); }
+        #location-name-display { background-color: rgba(0,0,0,0.4); padding: 10px 18px; border: 2px solid var(--dark-wood-border); box-shadow: 3px 3px 0px var(--dark-wood-shadow); font-size: 1.1em; margin-bottom: 18px; color: var(--text-light); }
+        #question-text-display { background-color: var(--medium-wood-bg); border: 3px solid var(--dark-wood-border); padding: 20px 25px; margin-bottom: 25px; width: 90%; text-align: center; font-size: 1.5em; line-height: 1.8; color: var(--text-light); box-shadow: 4px 4px 0px var(--dark-wood-shadow); }
+        #options-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 95%; }
+        .option-button { font-family: var(--pixel-font); background-color: var(--medium-wood-bg); color: var(--text-light); border: 3px solid var(--dark-wood-border); padding: 18px 30px; font-size: 1.2em; cursor: pointer; box-shadow: 4px 4px 0px var(--dark-wood-shadow); transition: all 0.05s ease-in-out; min-width: 240px; text-align: center; flex-grow: 1; }
+        .option-button:hover { background-color: var(--light-wood-hover); color: #FFFFFF; }
+        .option-button:active { background-color: #604028; box-shadow: 2px 2px 0px var(--dark-wood-shadow); transform: translate(2px, 2px); }
+        .option-button.selected { outline: 3px solid yellow; outline-offset: -3px; }
+        .option-button.correct { background-color: lightgreen; color: var(--text-dark); border-color: darkgreen; box-shadow: 4px 4px 0px darkgreen; }
+        .option-button.incorrect { background-color: lightcoral; color: white; border-color: darkred; box-shadow: 4px 4px 0px darkred; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } }
+
+        /* --- 反饋彈出層 --- */
+        #feedback-popup { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 300; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s linear 0.3s; }
+        #feedback-popup.active { opacity: 1; visibility: visible; transition: opacity 0.3s; }
+        .feedback-content {
+            width: 700px; height: 500px;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            border: 5px solid var(--feedback-border); box-shadow: 0 0 15px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            padding: 20px; box-sizing: border-box;
+            position: relative;
+        }
+        .feedback-content.correct { background-image: url('page115.png'); background-color: var(--feedback-correct-bg); }
+        .feedback-content.incorrect { background-image: url('page117.png'); background-color: var(--feedback-incorrect-bg); }
+        #close-feedback-button {
+            font-family: var(--pixel-font);
+            padding: 15px 25px; font-size: 1.1em; cursor: pointer;
+            background-color: #eee; color: #333; border: 3px solid #999; box-shadow: 3px 3px 0px #666;
+            position: absolute; bottom: 40px; left: 50%;
+            transform: translateX(-50%);
+        }
+        #close-feedback-button:active { background-color: #ccc; box-shadow: 1px 1px 0px #666; transform: translate(calc(-50% + 2px), 2px); }
+
+
+        /* --- Boss 戰畫面 --- */
+        #boss-screen { z-index: 160; background-color: #4a1a1a; justify-content: space-between; }
+        #boss-area {
+            width: 100%;
+            height: 65%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        #boss-sprite {
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center center;
+            opacity: 0;
+            transform: translateY(-50px) scale(0.8);
+            transition: transform 0.2s ease-in-out, opacity 0.8s ease-out;
+        }
+        #boss-sprite.appear {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s;
+        }
+
+        #boss-sprite.hit { animation: bossHitShake 0.3s; }
+        @keyframes bossHitShake {
+            0%, 100% { transform: translateX(0) rotate(0) scale(1); }
+            25% { transform: translateX(-12px) rotate(-5deg) scale(1.05); }
+            50% { transform: translateX(12px) rotate(5deg) scale(1.05); }
+            75% { transform: translateX(-12px) rotate(-5deg) scale(1.05); }
+        }
+
+        #boss-hp-bar-container {
+            width: 500px;
+            height: 42px;
+            background-color: #2a0808;
+            border: 4px solid #1a0000;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.7),
+                        inset 0px 0px 8px rgba(0,0,0,0.4);
+            border-radius: 22px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        #boss-hp-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #f85032, #e73827, #c00000);
+            transition: width 0.6s cubic-bezier(0.65, 0.05, 0.36, 1);
+            border-radius: 15px;
+            box-shadow: inset 0 -4px 5px rgba(0,0,0,0.3),
+                        inset 0 3px 3px rgba(255,120,120,0.35);
+        }
+
+        #boss-quiz-area {
+            width: 100%;
+            height: 35%;
+            background-color: #603813; padding: 20px;
+            box-sizing: border-box; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-around;
+            border-top: 5px solid var(--dark-wood-border);
+        }
+        #boss-question-text-display { background-color: var(--medium-wood-bg); border: 3px solid var(--dark-wood-border); padding: 15px 20px; margin-bottom: 20px; width: 90%; text-align: center; font-size: 1.4em; line-height: 1.7; color: var(--text-light); box-shadow: 4px 4px 0px var(--dark-wood-shadow); }
+        #boss-options-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 95%; }
+
+
+        /* --- 結束畫面 --- */
+        #end-screen { z-index: 180; background-color: #3a4a3a; text-align: center; }
+        #end-screen.win { background-image: url('page119.png'); }
+        #end-screen.final { background-image: url('page120.png'); }
+
+        .end-text-container {
+            background-color: rgba(0, 0, 0, 0.65);
+            padding: 20px;
+            border-radius: 10px;
+            border: 3px solid var(--dark-wood-border);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin: 20px auto;
+            max-width: 80%;
+            display: none;
+        }
+        #end-screen.win .end-text-container {
+            display: block;
+        }
+        #end-screen.final .end-text-container {
+            display: none;
+        }
+        #end-screen.final .end-message,
+        #end-screen.final .end-stats,
+        #end-screen.final #final-award-message {
+             background-color: rgba(0,0,0,0.75);
+             padding: 15px;
+             border-radius: 5px;
+             margin-bottom: 20px;
+        }
+
+
+        .end-message {
+            margin-bottom: 25px; font-size: 1.8em; line-height: 1.9;
+            color: var(--text-light);
+            text-shadow: 2px 2px 0px var(--dark-wood-shadow), 0 0 8px rgba(0,0,0,0.8);
+        }
+        .end-stats {
+            font-size: 1.3em; margin-bottom: 15px; line-height: 1.8;
+            color: var(--text-light);
+            text-shadow: 1px 1px 0px var(--dark-wood-shadow), 0 0 5px rgba(0,0,0,0.6);
+        }
+        .end-stats span { color: yellow; font-weight: bold; }
+        #final-award-message {
+            font-size: 1.4em;
+            color: #FFD700;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            line-height: 1.7;
+            font-weight: bold;
+            text-shadow: 1px 1px 0px var(--dark-wood-shadow), 0 0 10px #000;
+        }
+        #restart-button { font-family: var(--pixel-font); padding: 18px 35px; font-size: 1.4em; cursor: pointer; background-color: var(--medium-wood-bg); color: var(--text-light); border: 3px solid var(--dark-wood-border); box-shadow: 4px 4px 0px var(--dark-wood-shadow); margin-top: 20px; }
+        #restart-button:active { background-color: #604028; box-shadow: 2px 2px 0px var(--dark-wood-shadow); transform: translate(2px, 2px); }
+
+        /* --- 粒子效果 Canvas --- */
+        #particleCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 250; display: none; }
+        #particleCanvas.active { display: block; }
+
+    </style>
+</head>
+<body>
+    <div id="game-world">
+        <div id="score-display" class="hidden">分數: <span id="score-value">0</span></div>
+
+        <div id="start-screen" class="screen">
+            <div id="cover-image-start">
+                <img src="1.png" alt="遊戲封面">
+            </div>
+            <button id="startGameButton" class="pixel-button-large">開始遊戲</button>
+        </div>
+
+        <div id="storyContainer" class="screen">
+            <div class="story-text-box">
+                <p>在嘉義市中心，有一座承載百年歷史的木構村落──「檜意森活村」。</p>
+                <p>有一天，一道黑霧從都市邊界蔓延而來，封印了村落的記憶與故事。</p>
+                <p>昔日歡笑的建築變得沉默，文化記憶正在凋零。</p>
+                <p>只有喚醒藏於各個地點的「檜森之力」，才能抵抗黑霧，解開歷史的封印。<br>你，將化身為檜之子，在村落中尋找歷史的答案，對抗迷失之魔王──虛闇魘！</p>
+            </div>
+            <button id="continueButton">繼續...</button>
+        </div>
+
+        <div id="map-screen" class="screen">
+            <img id="map-image" src="map.jpg" alt="檜意森活村地圖">
+            <div id="ui-top-bar">
+                檜森之力: <span id="power-counter">0 / 15</span>
+            </div>
+            <div id="map-markers-container">
+                <div class="map-marker" id="marker-1" data-marker-id="1"></div> <div class="map-marker" id="marker-2" data-marker-id="2"></div> <div class="map-marker" id="marker-3" data-marker-id="3"></div> <div class="map-marker" id="marker-4" data-marker-id="4"></div> <div class="map-marker" id="marker-5" data-marker-id="5"></div> <div class="map-marker" id="marker-6" data-marker-id="6"></div> <div class="map-marker" id="marker-7" data-marker-id="7"></div> <div class="map-marker" id="marker-8" data-marker-id="8"></div> <div class="map-marker" id="marker-9" data-marker-id="9"></div> <div class="map-marker" id="marker-10" data-marker-id="10"></div> <div class="map-marker" id="marker-11" data-marker-id="11"></div> <div class="map-marker" id="marker-12" data-marker-id="12"></div> <div class="map-marker" id="marker-13" data-marker-id="13"></div> <div class="map-marker" id="marker-14" data-marker-id="14"></div> <div class="map-marker" id="marker-15" data-marker-id="15"></div> <div class="map-marker" id="marker-16" data-marker-id="16"></div> <div class="map-marker" id="marker-17" data-marker-id="17"></div> <div class="map-marker" id="marker-18" data-marker-id="18"></div> <div class="map-marker" id="marker-19" data-marker-id="19"></div> <div class="map-marker" id="marker-20" data-marker-id="20"></div>
+            </div>
+        </div>
+
+        <div id="quiz-screen" class="screen">
+            <div id="quiz-top-section"></div>
+            <div id="quiz-bottom-section">
+                <div id="location-name-display">地點名稱</div>
+                <div id="question-text-display">問題文字</div>
+                <div id="options-container"></div>
+            </div>
+        </div>
+
+        <div id="boss-screen" class="screen">
+            <div id="boss-area">
+                <div id="boss-sprite"></div>
+                <div id="boss-hp-bar-container">
+                    <div id="boss-hp-bar"></div>
+                </div>
+            </div>
+            <div id="boss-quiz-area">
+                 <div id="boss-question-text-display">魔王的問題！</div>
+                 <div id="boss-options-container"></div>
+            </div>
+        </div>
+
+        <div id="end-screen" class="screen">
+             <div class="end-text-container">
+                 <div class="end-message">恭喜你贏了！</div>
+                 <div class="end-stats">
+                     收集到的檜森之力: <span id="final-power">0</span><br>
+                     獲得稱號: <span id="final-title">見習檜之子</span><br>
+                     最終得分: <span id="final-score">0</span>
+                 </div>
+                 <div id="final-award-message">你的冒險精神值得嘉獎！</div>
+             </div>
+             <div class="end-message" style="display:none;"></div>
+             <div class="end-stats" style="display:none;">
+                收集到的檜森之力: <span id="final-power-alt">0</span><br>
+                獲得稱號: <span id="final-title-alt">見習檜之子</span><br>
+                最終得分: <span id="final-score-alt">0</span>
+             </div>
+             <div id="final-award-message-alt" style="display:none;"></div>
+
+             <button id="restart-button">重新開始</button>
+        </div>
+
+        <div id="feedback-popup">
+            <div class="feedback-content">
+                <button id="close-feedback-button">知道了</button>
+            </div>
+        </div>
+
+        <canvas id="particleCanvas"></canvas>
+    </div>
+
+    <audio id="bgm-game" src="Game.mp3" loop></audio>
+    <audio id="bgm-boss" src="boss.mp3" loop></audio>
+    <audio id="bgm-end" src="end.mp3" loop></audio>
+    <audio id="sfx-correct" src="correct.mp3"></audio>
+    <audio id="sfx-incorrect" src="incorrect.mp3"></audio>
+    <audio id="sfx-touch" src="touch.mp3"></audio>
+
+    <script>
+        const ALL_QUESTIONS_DATA = [
+            { questionNumber: 1, locationName: "太拙居", questionText: "太拙居的「五行」指的是什麼？", options: [{ id: 1, text: "紅黃藍綠紫" },{ id: 2, text: "木火土金水" },{ id: 3, text: "五條馬路" }], correctAnswerId: 2 },
+            { questionNumber: 2, locationName: "龍鳳祥交趾陶", questionText: "「交趾陶」又稱為什麼？", options: [{ id: 1, text: "台北燒" },{ id: 2, text: "高雄燒" },{ id: 3, text: "嘉義燒" }], correctAnswerId: 3 },
+            { questionNumber: 3, locationName: "花果椿妝", questionText: "「花果椿妝」的建築物是用什麼建造的？", options: [{ id: 1, text: "水泥屋" },{ id: 2, text: "木屋" },{ id: 3, text: "草屋" }], correctAnswerId: 2 },
+            { questionNumber: 4, locationName: "青春鬥", questionText: "「青春鬥」裡面賣的大補帖是什麼？", options: [{ id: 1, text: "中藥" },{ id: 2, text: "糖果" },{ id: 3, text: "玩具" }], correctAnswerId: 1 },
+            { questionNumber: 5, locationName: "旅遊服務諮詢站", questionText: "設置「旅遊服務諮詢站」的目的是？", options: [{ id: 1, text: "提供免費紀念品" },{ id: 2, text: "代購鐵路車票" },{ id: 3, text: "為旅客提供服務" }], correctAnswerId: 3 },
+            { questionNumber: 6, locationName: "所長茶葉蛋", questionText: "「『所長』茶葉蛋」的『所長』是哪一所的長官？", options: [{ id: 1, text: "介紹所" },{ id: 2, text: "交易所" },{ id: 3, text: "派出所" }], correctAnswerId: 3 },
+            { questionNumber: 7, locationName: "並木館", questionText: "「並木館」中所販售的產品都是用哪種材質製成？", options: [{ id: 1, text: "塑膠" },{ id: 2, text: "鋼鐵" },{ id: 3, text: "木頭" }], correctAnswerId: 3 },
+            { questionNumber: 8, locationName: "旺萊山", questionText: "「旺萊山」的鳳梨酥內餡是採用哪一個地區的鳳梨？", options: [{ id: 1, text: "高雄大樹" },{ id: 2, text: "嘉義民雄" },{ id: 3, text: "屏東長治" }], correctAnswerId: 2 },
+            { questionNumber: 9, locationName: "臺灣百年養蜂世家", questionText: "「黃鶴三宜」百年養蜂世家已經傳承了幾代？", options: [{ id: 1, text: "二代" },{ id: 2, text: "三代" },{ id: 3, text: "四代" }], correctAnswerId: 3 },
+            { questionNumber: 10, locationName: "活泉人文", questionText: "活泉人文以賣茶葉為主，所以店裡可以看到什麼陳設物品?", options: [{ id: 1, text: "蜜蜂" },{ id: 2, text: "茶具" },{ id: 3, text: "棉被" }], correctAnswerId: 2 },
+            { questionNumber: 11, locationName: "森咖啡", questionText: "森咖啡店名又叫Morikoohii是因為創始人是哪一國人?", options: [{ id: 1, text: "日本人" },{ id: 2, text: "法國人" },{ id: 3, text: "美國人" }], correctAnswerId: 1 },
+            { questionNumber: 12, locationName: "山葵殿", questionText: "「山葵殿」的山葵產區位於哪裡？", options: [{ id: 1, text: "玉山" },{ id: 2, text: "陽明山" },{ id: 3, text: "阿里山" }], correctAnswerId: 3 },
+            { questionNumber: 13, locationName: "新太源藝術工坊", questionText: "新太源的紅花陶瓷畫的是什麼花？", options: [{ id: 1, text: "菊花" },{ id: 2, text: "牡丹花" },{ id: 3, text: "向日葵" }], correctAnswerId: 2 },
+            { questionNumber: 14, locationName: "鴻豆王國", questionText: "「鴻豆王國」主要販售的產品是？", options: [{ id: 1, text: "紅豆" },{ id: 2, text: "咖啡" },{ id: 3, text: "豌豆" }], correctAnswerId: 1 },
+            { questionNumber: 15, locationName: "原民部落主題館", questionText: "原民部落主題館館內販賣什麼文創商品?", options: [{ id: 1, text: "茶葉蛋" },{ id: 2, text: "原住民的琉璃珠" },{ id: 3, text: "吐司" }], correctAnswerId: 2 },
+            { questionNumber: 16, locationName: "福義軒", questionText: "「福義軒」是以哪種產品聞名？", options: [{ id: 1, text: "蛋捲" },{ id: 2, text: "紅豆餅" },{ id: 3, text: "雞肉飯" }], correctAnswerId: 1 },
+            { questionNumber: 17, locationName: "酵母寶寶的異想世界", questionText: "酵母菌可以用來做什麼？", options: [{ id: 1, text: "製糖" },{ id: 2, text: "釀酒" },{ id: 3, text: "做細菌" }], correctAnswerId: 2 },
+            { questionNumber: 18, locationName: "丸作食茶", questionText: "“丸作”每日新鮮現做的“丸”是指什麼?", options: [{ id: 1, text: "貢丸" },{ id: 2, text: "湯圓" },{ id: 3, text: "珍珠粉圓" }], correctAnswerId: 3 },
+            { questionNumber: 19, locationName: "炭SO館", questionText: "黑炭和白炭哪一個硬度較高？", options: [{ id: 1, text: "黑炭" },{ id: 2, text: "白炭" },{ id: 3, text: "都一樣" }], correctAnswerId: 2 },
+            { questionNumber: 20, locationName: "阿潭伯海食", questionText: "「阿潭伯海食」是銷售哪類點心商品？", options: [{ id: 1, text: "蔬菜" },{ id: 2, text: "水果" },{ id: 3, text: "海鮮" }], correctAnswerId: 3 },
+            { questionNumber: 21, locationName: "金石工坊", questionText: "開店做生意的人喜歡擺何種飾品招攬生意？", options: [{ id: 1, text: "老虎" },{ id: 2, text: "狗" },{ id: 3, text: "招財貓" }], correctAnswerId: 3 },
+            { questionNumber: 22, locationName: "台灣瓷藝精品館", questionText: "世界級瓷繪大師徐瑞芬老師在哪裡成立台灣瓷藝館？", options: [{ id: 1, text: "嘉義" },{ id: 2, text: "台南" },{ id: 3, text: "高雄" }], correctAnswerId: 1 },
+            { questionNumber: 23, locationName: "營林俱樂部", questionText: "全台灣唯二的「都鐸式建築」，一個為臺北故事館，另一個則是？", options: [{ id: 1, text: "月桃故事館" },{ id: 2, text: "營林俱樂部" },{ id: 3, text: "臺北１０１" }], correctAnswerId: 2 },
+            { questionNumber: 24, locationName: "阿皂屋", questionText: "阿皂屋裡面主要販賣什麼商品?", options: [{ id: 1, text: "蛋糕" },{ id: 2, text: "肥皂" },{ id: 3, text: "鉛筆" }], correctAnswerId: 2 },
+            { questionNumber: 25, locationName: "2030舊時嘉義館", questionText: "拍攝KANO台灣棒球歷史的影片是在哪一館拍攝的?", options: [{ id: 1, text: "皇家西洋館" },{ id: 2, text: "2030舊時嘉義館" },{ id: 3, text: "霞光和服館" }], correctAnswerId: 2 },
+            { questionNumber: 26, locationName: "霞光和服館", questionText: "日本人什麼時候會穿和服?", options: [{ id: 1, text: "睡覺時" },{ id: 2, text: "上體育課" },{ id: 3, text: "重要節慶時" }], correctAnswerId: 3 },
+            { questionNumber: 27, locationName: "皇家西洋館", questionText: "請問這間店(皇家西洋館)的設計風格是下面哪一種?", options: [{ id: 1, text: "非洲風格" },{ id: 2, text: "韓國風格" },{ id: 3, text: "歐洲風格" }], correctAnswerId: 3 },
+            { questionNumber: 28, locationName: "眠月廬", questionText: "眠月廬是以何種木材建造的？", options: [{ id: 1, text: "檜木" },{ id: 2, text: "樟木" },{ id: 3, text: "柚木" }], correctAnswerId: 1 },
+            { questionNumber: 29, locationName: "所長官舍", questionText: "「所長官舍」用什麼木材建造?", options: [{ id: 1, text: "松木" },{ id: 2, text: "檜木" },{ id: 3, text: "柚木" }], correctAnswerId: 2 },
+            { questionNumber: 30, locationName: "阿里山林業史館", questionText: "「阿里山林業史館」展出誰的畫?", options: [{ id: 1, text: "李梅樹" },{ id: 2, text: "陳澄波" },{ id: 3, text: "黃香明" }], correctAnswerId: 2 },
+            { questionNumber: 31, locationName: "湯城鵝行", questionText: "湯城鵝行的鵝是來自哪裡的養鵝場?", options: [{ id: 1, text: "台北三重" },{ id: 2, text: "嘉義大林" },{ id: 3, text: "台南鹽水" }], correctAnswerId: 2 },
+            { questionNumber: 32, locationName: "阿里山林業史館", questionText: "在哪一棟建築物裡可以看到四種珍貴木材的介紹?", options: [{ id: 1, text: "營林俱樂部" },{ id: 2, text: "所長官舍" },{ id: 3, text: "阿里山林業史館" }], correctAnswerId: 3 },
+            { questionNumber: 33, locationName: "營林俱樂部", questionText: "哪一棟建築物在日據時期是被當作休閒娛樂的場所?", options: [{ id: 1, text: "營林俱樂部" },{ id: 2, text: "眠月廬" },{ id: 3, text: "所長官舍" }], correctAnswerId: 1 },
+            { questionNumber: 34, locationName: "森超市", questionText: "在「森超市」裡可以買到哪個國家的精緻農產品？", options: [{ id: 1, text: "日本" },{ id: 2, text: "臺灣" },{ id: 3, text: "韓國" }], correctAnswerId: 1 },
+            { questionNumber: 35, locationName: "福松林木頭手作文創區", questionText: "「蟲雕作品」是怎麼做的？", options: [{ id: 1, text: "蟲蛀的" },{ id: 2, text: "人工做出來的" },{ id: 3, text: "小狗咬的" }], correctAnswerId: 1 },
+            { questionNumber: 36, locationName: "農業精品館", questionText: "在「農業精品館」中最特別的是?", options: [{ id: 1, text: "阿里山森鐵動態實體" },{ id: 2, text: "雪山隧道模型" },{ id: 3, text: "台灣黑熊模型" }], correctAnswerId: 1 },
+            { questionNumber: 37, locationName: "王子烘焙坊2店", questionText: "王子烘焙坊2店是來自哪個飯店?", options: [{ id: 1, text: "耐斯王子大飯店" },{ id: 2, text: "長榮飯店" },{ id: 3, text: "阿里山大飯店" }], correctAnswerId: 1 }
+        ];
+
+        let availableQuestionsPool = [];
+        let mapMarkerQuestionMap = {};
+        const MAX_MAP_MARKERS = 20;
+        let currentScreen = 'start';
+        let collectedPower = 0;
+        const targetPower = 15;
+        let completedMarkers = [];
+        let currentQuestion = null;
+        let currentMarkerElement = null;
+        const quizBgs = ['Game-1.png', 'Game-2.png', 'Game-3.png', 'Game-4.png', 'Game-5.png', 'Game-6.png'];
+        let bossHP = 3;
+        const BOSS_MAX_HP = 3;
+        let bossQuestions = [];
+        let currentBossQuestionIndex = 0;
+        let bossDefeated = false;
+        let score = 0;
+        let questionAttempts = {};
+
+        const gameWorld = document.getElementById('game-world');
+        const screens = { start: document.getElementById('start-screen'), story: document.getElementById('storyContainer'), map: document.getElementById('map-screen'), quiz: document.getElementById('quiz-screen'), boss: document.getElementById('boss-screen'), end: document.getElementById('end-screen') };
+        const startGameButton = document.getElementById('startGameButton');
+        const continueButton = document.getElementById('continueButton');
+        const powerCounterElement = document.getElementById('power-counter');
+        const mapMarkersContainer = document.getElementById('map-markers-container');
+        const quizTopSection = document.getElementById('quiz-top-section');
+        const locationNameDisplay = document.getElementById('location-name-display');
+        const questionTextDisplay = document.getElementById('question-text-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackPopup = document.getElementById('feedback-popup');
+        const feedbackContent = feedbackPopup.querySelector('.feedback-content');
+        const closeFeedbackButton = document.getElementById('close-feedback-button');
+        const bossSprite = document.getElementById('boss-sprite');
+        const bossHpBar = document.getElementById('boss-hp-bar');
+        const bossQuestionTextDisplay = document.getElementById('boss-question-text-display');
+        const bossOptionsContainer = document.getElementById('boss-options-container');
+        const endScreenElement = document.getElementById('end-screen');
+        const endMessage = endScreenElement.querySelector('.end-text-container .end-message');
+        const endStats = endScreenElement.querySelector('.end-text-container .end-stats');
+        const finalPower = document.getElementById('final-power');
+        const finalTitle = document.getElementById('final-title');
+        const finalScore = document.getElementById('final-score');
+        const finalAwardMessage = document.getElementById('final-award-message');
+        const endMessageAlt = endScreenElement.querySelector('.end-message[style*="display:none"]');
+        const endStatsAlt = endScreenElement.querySelector('.end-stats[style*="display:none"]');
+        const finalPowerAlt = document.getElementById('final-power-alt');
+        const finalTitleAlt = document.getElementById('final-title-alt');
+        const finalScoreAlt = document.getElementById('final-score-alt');
+        const finalAwardMessageAlt = document.getElementById('final-award-message-alt');
+        const restartButton = document.getElementById('restart-button');
+        const particleCanvas = document.getElementById('particleCanvas');
+        const particleCtx = particleCanvas.getContext('2d');
+        let particles = [];
+        let particleAnimationId = null;
+        const scoreDisplay = document.getElementById('score-display');
+        const scoreValue = document.getElementById('score-value');
+        const bgmGame = document.getElementById('bgm-game');
+        const bgmBoss = document.getElementById('bgm-boss');
+        const bgmEnd = document.getElementById('bgm-end');
+        const sfxCorrect = document.getElementById('sfx-correct');
+        const sfxIncorrect = document.getElementById('sfx-incorrect');
+        const sfxTouch = document.getElementById('sfx-touch');
+        let currentBGM = null;
+
+        function playTouchSound() { if (sfxTouch) { sfxTouch.currentTime = 0; sfxTouch.play().catch(e => console.warn("Touch sound play failed:", e)); } }
+        function playCorrectSound() { if (sfxCorrect) { sfxCorrect.currentTime = 0; sfxCorrect.play().catch(e => console.warn("Correct sound play failed:", e)); } }
+        function playIncorrectSound() { if (sfxIncorrect) { sfxIncorrect.currentTime = 0; sfxIncorrect.play().catch(e => console.warn("Incorrect sound play failed:", e)); } }
+        function playBackgroundMusic(musicElement) {
+            if (currentBGM && currentBGM !== musicElement) { currentBGM.pause(); currentBGM.currentTime = 0; }
+            if (musicElement && musicElement.paused) {
+                musicElement.play().then(() => { currentBGM = musicElement; }).catch(e => console.warn("BGM play failed:", e, "Element:", musicElement.id));
+            } else if (musicElement) { currentBGM = musicElement; }
+        }
+        function stopAllBackgroundMusic() {
+            if (bgmGame) { bgmGame.pause(); bgmGame.currentTime = 0; }
+            if (bgmBoss) { bgmBoss.pause(); bgmBoss.currentTime = 0; }
+            if (bgmEnd) { bgmEnd.pause(); bgmEnd.currentTime = 0; }
+            currentBGM = null;
+        }
+
+        function updateScoreDisplay() {
+            if (scoreValue) {
+                scoreValue.textContent = score;
+                scoreValue.classList.add('updated');
+                setTimeout(() => scoreValue.classList.remove('updated'), 200);
+            }
+            if (scoreDisplay) {
+                if (score > 0 || currentScreen !== 'start') { scoreDisplay.classList.remove('hidden'); }
+                else { scoreDisplay.classList.add('hidden'); }
+            }
+        }
+        function addScore(points) {
+            score += points;
+            updateScoreDisplay();
+            if (points > 0) { triggerParticles('score-update', 25, '#FFDF00', scoreDisplay); }
+        }
+        function calculatePoints(questionId) {
+            const attempts = questionAttempts[questionId] || 0;
+            if (attempts === 0) return 500;
+            if (attempts === 1) return 400;
+            if (attempts === 2) return 300;
+            if (attempts === 3) return 200;
+            return 100;
+        }
+        function updatePowerCounter() {
+            if (powerCounterElement) {
+                powerCounterElement.innerHTML = `${collectedPower} / ${targetPower}`;
+                powerCounterElement.classList.add('updated');
+                setTimeout(() => powerCounterElement.classList.remove('updated'), 200);
+            }
+        }
+
+        function showScreen(screenId, applyShake = false, shakeStrong = false) {
+            Object.values(screens).forEach(screen => {
+                if (screen) {
+                    screen.classList.remove('active', 'shake-effect', 'shake-effect-strong');
+                }
+            });
+            if (screens[screenId]) {
+                screens[screenId].classList.add('active');
+                if (applyShake) {
+                    setTimeout(() => screens[screenId].classList.add(shakeStrong ? 'shake-effect-strong' : 'shake-effect'), 50);
+                }
+                currentScreen = screenId;
+                console.log("切換到畫面:", screenId);
+                updateScoreDisplay();
+
+                if (screenId === 'map' || screenId === 'quiz') playBackgroundMusic(bgmGame);
+                else if (screenId === 'boss') playBackgroundMusic(bgmBoss);
+                else if (screenId === 'end') playBackgroundMusic(bgmEnd);
+                else if (screenId === 'start' || screenId === 'story') {
+                    if (currentBGM && (currentBGM === bgmGame || currentBGM === bgmBoss)) stopAllBackgroundMusic();
+                }
+
+                if (screenId === 'map') triggerParticles('screen-change-map', 40, '#87CEFA', gameWorld);
+                if (screenId === 'quiz') triggerParticles('screen-change-quiz', 35, '#FFFACD', gameWorld);
+
+            } else { console.error("無效的畫面 ID 或元素未找到:", screenId); }
+        }
+
+        function getRandomQuestionFromPool() {
+            if (availableQuestionsPool.length === 0) return null;
+            const randomIndex = Math.floor(Math.random() * availableQuestionsPool.length);
+            return availableQuestionsPool.splice(randomIndex, 1)[0];
+        }
+
+        function assignQuestionsToMarkers() {
+            mapMarkerQuestionMap = {};
+            const markers = mapMarkersContainer.querySelectorAll('.map-marker');
+            const questionsForMap = [];
+            for (let i = 0; i < Math.min(MAX_MAP_MARKERS, availableQuestionsPool.length); i++) {
+                 const q = getRandomQuestionFromPool();
+                 if (q) questionsForMap.push(q);
+                 else break;
+            }
+
+            markers.forEach((marker, index) => {
+                if (index < questionsForMap.length) {
+                    const question = questionsForMap[index];
+                    marker.dataset.markerId = `marker-${index + 1}`;
+                    mapMarkerQuestionMap[marker.dataset.markerId] = question;
+                    marker.style.display = 'block';
+                    marker.classList.remove('completed');
+                    marker.onclick = () => { playTouchSound(); handleMarkerClick(marker); };
+                } else {
+                    marker.style.display = 'none';
+                }
+            });
+        }
+
+
+        function showQuizScreen(question, markerElement) {
+            currentQuestion = question;
+            currentMarkerElement = markerElement;
+            const bgIndex = Math.floor(Math.random() * quizBgs.length);
+            quizTopSection.style.backgroundImage = `url('${quizBgs[bgIndex]}')`;
+            quizTopSection.style.backgroundSize = 'cover';
+
+            locationNameDisplay.textContent = question.locationName || `問題 ${question.questionNumber}`;
+            questionTextDisplay.textContent = question.questionText;
+            optionsContainer.innerHTML = '';
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.classList.add('option-button');
+                button.textContent = option.text;
+                button.dataset.optionId = option.id;
+                button.addEventListener('click', () => handleAnswer(option.id, button));
+                optionsContainer.appendChild(button);
+            });
+            showScreen('quiz');
+            triggerParticles('quiz-open', 35, '#FFFFE0', currentMarkerElement);
+        }
+
+        function handleAnswer(selectedOptionId, buttonElement) {
+            playTouchSound();
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            buttons.forEach(btn => btn.disabled = true);
+            buttonElement.classList.add('selected');
+
+            const questionId = currentQuestion.questionNumber;
+            const isCorrect = selectedOptionId === currentQuestion.correctAnswerId;
+
+            if (isCorrect) {
+                if (!questionAttempts[questionId]) questionAttempts[questionId] = 0;
+                const points = calculatePoints(questionId);
+                addScore(points);
+                questionAttempts[questionId]++;
+            } else {
+                questionAttempts[questionId] = (questionAttempts[questionId] || 0) + 1;
+            }
+
+            buttons.forEach(btn => {
+                const optionId = parseInt(btn.dataset.optionId);
+                if (optionId === currentQuestion.correctAnswerId) btn.classList.add('correct');
+                else if (optionId === selectedOptionId && !isCorrect) btn.classList.add('incorrect');
+            });
+
+            setTimeout(() => {
+                if (isCorrect) {
+                    playCorrectSound();
+                    collectedPower++;
+                    updatePowerCounter();
+                    if (currentMarkerElement && currentMarkerElement.dataset.markerId) {
+                        completedMarkers.push(currentMarkerElement.dataset.markerId);
+                        currentMarkerElement.classList.add('completed');
+                        currentMarkerElement.onclick = null;
+                    }
+                    showFeedback(true);
+                    triggerParticles('correct-answer', 60, '#7FFF00', buttonElement);
+                } else {
+                    playIncorrectSound();
+                    showFeedback(false);
+                    triggerParticles('incorrect-answer', 60, '#FF6347', buttonElement);
+                    if (screens.quiz) showScreen('quiz', true); // Re-show with shake
+                }
+            }, 1000);
+        }
+
+        function showFeedback(isCorrect) {
+            feedbackContent.className = 'feedback-content';
+            feedbackContent.classList.add(isCorrect ? 'correct' : 'incorrect');
+            feedbackPopup.classList.add('active');
+        }
+
+        function closeFeedback() {
+            feedbackPopup.classList.remove('active');
+            if (currentScreen === 'quiz') {
+                const justAnsweredCorrectly = feedbackContent.classList.contains('correct');
+                if (justAnsweredCorrectly) {
+                    if (collectedPower >= targetPower && !bossDefeated) { startBossFight(); }
+                    else { showScreen('map'); }
+                } else {
+                    const buttons = optionsContainer.querySelectorAll('.option-button');
+                    buttons.forEach(btn => { btn.disabled = false; btn.classList.remove('selected', 'correct', 'incorrect'); });
+                }
+            } else if (currentScreen === 'boss') {
+                // If boss is defeated, the sequence is handled in handleBossAnswer, so no need to show next question.
+                if (!bossDefeated) {
+                    const justAnsweredCorrectly = feedbackContent.classList.contains('correct');
+                    if (justAnsweredCorrectly) {
+                        if (bossHP > 0) { // Only show next question if boss is alive and not in defeat sequence
+                            showBossQuestion();
+                        }
+                    } else { // Boss戰答錯，重置按鈕
+                        const buttons = bossOptionsContainer.querySelectorAll('.option-button');
+                        buttons.forEach(btn => { btn.disabled = false; btn.classList.remove('selected', 'correct', 'incorrect'); });
+                    }
+                }
+            }
+        }
+
+        function startBossFight() {
+            console.log("開始 Boss 戰！");
+            showScreen('boss', true);
+            bossHP = BOSS_MAX_HP; currentBossQuestionIndex = 0; bossDefeated = false;
+            updateBossSprite('normal'); updateBossHpBar();
+            bossSprite.classList.remove('appear');
+            setTimeout(() => bossSprite.classList.add('appear'), 50);
+
+            bossQuestions = [];
+            for (let i = 0; i < BOSS_MAX_HP; i++) {
+                const q = getRandomQuestionFromPool();
+                if (q) { bossQuestions.push(q); }
+                else {
+                    console.warn("Boss 戰問題不足！");
+                    if (i === 0) {
+                        bossDefeated = true; updateBossSprite('defeated');
+                        setTimeout(() => showEndScreen('win'), 1000);
+                        return;
+                    }
+                    break;
+                }
+            }
+            if (bossQuestions.length === 0 && BOSS_MAX_HP > 0) {
+                 bossDefeated = true; updateBossSprite('defeated');
+                 setTimeout(() => showEndScreen('win'), 1000);
+                 return;
+            }
+
+            triggerParticles('boss-appear', 120, '#B22222', bossSprite);
+            showBossQuestion();
+        }
+
+        function showBossQuestion() {
+            // This function is called after feedback is closed OR if boss is not defeated by the last hit.
+            // If bossDefeated is true, this shouldn't be reached for the final question.
+            if (bossDefeated || currentBossQuestionIndex >= bossQuestions.length || bossHP <= 0) {
+                // If somehow reached here and boss is actually defeated, ensure win screen.
+                if (bossHP <= 0 && !bossDefeated) {
+                    // This case should ideally be caught in handleBossAnswer's defeat sequence.
+                    console.warn("Boss defeat sequence missed, triggering from showBossQuestion");
+                    bossDefeated = true;
+                    updateBossSprite('defeated');
+                    triggerParticles('boss-defeat-explosion', 250, '#DC143C', bossSprite);
+                    showScreen('boss', true, true); // Strong shake
+                    setTimeout(() => showEndScreen('win'), 2000);
+                }
+                return;
+            }
+
+            const question = bossQuestions[currentBossQuestionIndex];
+            bossQuestionTextDisplay.textContent = question.questionText;
+            bossOptionsContainer.innerHTML = '';
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.classList.add('option-button');
+                button.textContent = option.text;
+                button.dataset.optionId = option.id;
+                button.addEventListener('click', () => handleBossAnswer(option.id, button, question));
+                bossOptionsContainer.appendChild(button);
+            });
+        }
+
+        function handleBossAnswer(selectedOptionId, buttonElement, question) {
+            playTouchSound();
+            const buttons = bossOptionsContainer.querySelectorAll('.option-button');
+            buttons.forEach(btn => btn.disabled = true); // Disable all options immediately
+            buttonElement.classList.add('selected');
+
+            const questionId = `boss-${question.questionNumber}`;
+            const isCorrect = selectedOptionId === question.correctAnswerId;
+
+            // Style the selected button immediately based on correctness
+            if (isCorrect) {
+                buttonElement.classList.add('correct');
+            } else {
+                buttonElement.classList.add('incorrect');
+            }
+            // Style all correct buttons (even if not selected)
+            buttons.forEach(btn => {
+                if (parseInt(btn.dataset.optionId) === question.correctAnswerId) {
+                    btn.classList.add('correct');
+                }
+            });
+
+
+            if (isCorrect) {
+                // 1. Player Attack Visuals
+                triggerParticles('player-attack-boss', 80, '#FFFACD', null, bossSprite); // LemonChiffon bolts from player area
+
+                setTimeout(() => { // Delay for attack animation to "travel"
+                    // 2. Impact on Boss
+                    playCorrectSound();
+                    bossHP--;
+                    updateBossHpBar();
+                    updateBossSprite('hit'); // Boss recoils
+                    triggerParticles('boss-hit', 70, '#FF8C00', bossSprite); // Orange impact
+
+                    // Update score and attempts
+                    if (!questionAttempts[questionId]) questionAttempts[questionId] = 0;
+                    const points = calculatePoints(questionId); addScore(points);
+                    questionAttempts[questionId]++;
+
+                    // 3. Check for Defeat or Next Step (after impact settles)
+                    setTimeout(() => {
+                        if (bossHP <= 0) {
+                            // BOSS DEFEAT SEQUENCE
+                            bossDefeated = true; // Mark defeated
+                            triggerParticles('boss-defeat-start', 150, '#800080', bossSprite); // Purple, unstable
+
+                            setTimeout(() => {
+                                updateBossSprite('defeated'); // Final defeated pose
+                                triggerParticles('boss-defeat-explosion', 350, '#FF0000', bossSprite); // Bright Red explosion
+                                showScreen('boss', true, true); // Strong shake for explosion
+
+                                setTimeout(() => {
+                                    showEndScreen('win');
+                                }, 2500); // Time for explosion to settle before win screen
+                            }, 1800); // Time for unstable energy effect
+                        } else {
+                            // Not defeated, proceed to next question after feedback
+                            currentBossQuestionIndex++;
+                            showFeedback(true); // Show "Correct!"
+                        }
+                    }, 600); // Delay after hit before feedback/defeat decision
+                }, 700); // Delay for player attack animation to visually complete
+
+            } else { // Incorrect Answer
+                // 1. Boss Retaliation / Player Miss Visuals
+                triggerParticles('boss-retaliate', 90, '#4B0082', bossSprite); // Indigo, Boss emits dark pulse
+                showScreen('boss', true); // Shake for boss's power
+
+                // Update attempts for incorrect
+                questionAttempts[questionId] = (questionAttempts[questionId] || 0) + 1;
+
+                setTimeout(() => { // Delay for retaliation animation
+                    // 2. Show Feedback
+                    playIncorrectSound();
+                    showFeedback(false); // Show "Incorrect!"
+                    // No need for 'player-miss-feedback' particles here if 'boss-retaliate' is sufficient
+                }, 800); // Delay for boss retaliation animation
+            }
+        }
+
+
+        function updateBossHpBar() { const hpPercentage = Math.max(0, (bossHP / BOSS_MAX_HP) * 100); bossHpBar.style.width = `${hpPercentage}%`; }
+        function updateBossSprite(state) {
+            if (state === 'normal') { bossSprite.style.backgroundImage = `url('9-1.png')`; bossSprite.classList.remove('hit'); }
+            else if (state === 'hit') { bossSprite.style.backgroundImage = `url('9-2.png')`; bossSprite.classList.add('hit'); setTimeout(() => { if (bossHP > 0 && !bossDefeated) updateBossSprite('normal'); }, 400); }
+            else if (state === 'defeated') { bossSprite.style.backgroundImage = `url('9-3.png')`; bossSprite.classList.remove('hit'); }
+        }
+
+        function showEndScreen(resultType) {
+            showScreen('end');
+            finalPower.textContent = collectedPower;
+            finalScore.textContent = score;
+            finalPowerAlt.textContent = collectedPower;
+            finalScoreAlt.textContent = score;
+
+            let title = "見習檜之子";
+            let awardMsg = "再接再厲，下次會更好！";
+
+            if (score >= 8000) { title = "傳奇森活家"; awardMsg = "太強了！你是檜意森活村的傳奇！🏅"; }
+            else if (score >= 5000) { title = "森活探險王"; awardMsg = "恭喜！你對森活村瞭若指掌！🏆"; }
+            else if (score >= 2500) { title = "森活守護者"; awardMsg = "表現優異！你已是村落的守護者！🎖️"; }
+            else if (collectedPower >= targetPower) { title = "熟練的探險者"; awardMsg = "不錯的成績，繼續探索吧！✨"; }
+
+            finalTitle.textContent = title;
+            finalAwardMessage.textContent = awardMsg;
+            finalTitleAlt.textContent = title;
+            finalAwardMessageAlt.textContent = awardMsg;
+
+            endScreenElement.classList.remove('win', 'final');
+            endMessageAlt.style.display = 'none';
+            endStatsAlt.style.display = 'none';
+            finalAwardMessageAlt.style.display = 'none';
+            endScreenElement.querySelector('.end-text-container').style.display = 'none';
+
+            restartButton.textContent = "重新開始";
+            restartButton.onclick = () => { playTouchSound(); initGame(); };
+
+            if (resultType === 'win') {
+                endMessage.textContent = "恭喜你！成功擊退了虛闇魘！";
+                endScreenElement.classList.add('win');
+                endScreenElement.querySelector('.end-text-container').style.display = 'block';
+                triggerParticles('game-win', 250, '#FFD700', gameWorld);
+                 setTimeout(() => {
+                     endScreenElement.classList.remove('win');
+                     endScreenElement.classList.add('final');
+                     endScreenElement.querySelector('.end-text-container').style.display = 'none';
+                     endMessageAlt.textContent = "檜意森活村因你而恢復平靜！";
+                     endMessageAlt.style.display = 'block';
+                     endStatsAlt.style.display = 'block';
+                     finalAwardMessageAlt.style.display = 'block';
+
+                     restartButton.textContent = "領寶去吧!";
+                     restartButton.onclick = () => { playTouchSound(); alert("領取寶藏！感謝你的遊玩！"); initGame(); };
+                     triggerParticles('final-reward', 300, '#32CD32', gameWorld);
+                 }, 5000);
+            } else {
+                endMessage.textContent = "遊戲結束"; // Default message if not 'win'
+                endScreenElement.querySelector('.end-text-container').style.display = 'block';
+            }
+        }
+
+
+        function resetCssAnimation(element) {
+            if (element) { element.style.animation = 'none'; element.offsetHeight; element.style.animation = ''; }
+        }
+
+        function initGame() {
+            console.log("初始化遊戲...");
+            availableQuestionsPool = [...ALL_QUESTIONS_DATA];
+            mapMarkerQuestionMap = {};
+
+            collectedPower = 0; completedMarkers = []; currentQuestion = null; currentMarkerElement = null;
+            bossHP = BOSS_MAX_HP; bossQuestions = []; currentBossQuestionIndex = 0; bossDefeated = false;
+            score = 0; questionAttempts = {};
+
+            stopAllBackgroundMusic();
+            if (scoreDisplay) scoreDisplay.classList.add('hidden');
+            updateScoreDisplay();
+            updatePowerCounter();
+
+            assignQuestionsToMarkers();
+
+            resetCssAnimation(document.getElementById('cover-image-start'));
+            resetCssAnimation(startGameButton);
+            document.querySelectorAll('.story-text-box p').forEach(resetCssAnimation);
+            resetCssAnimation(continueButton);
+            resetCssAnimation(bossSprite);
+            bossSprite.classList.remove('appear');
+
+            Object.keys(screens).forEach(key => { if (screens[key]) screens[key].classList.remove('active', 'shake-effect', 'shake-effect-strong'); });
+            if (screens.start) screens.start.classList.add('active');
+            if (screens.story) screens.story.classList.remove('fade-out');
+
+            endScreenElement.classList.remove('win', 'final');
+            const endTextContainer = endScreenElement.querySelector('.end-text-container');
+            if (endTextContainer) endTextContainer.style.display = 'none';
+            if (endMessageAlt) endMessageAlt.style.display = 'none';
+            if (endStatsAlt) endStatsAlt.style.display = 'none';
+            if (finalAwardMessageAlt) finalAwardMessageAlt.style.display = 'none';
+
+            restartButton.textContent = "重新開始";
+            restartButton.onclick = () => { playTouchSound(); initGame(); };
+
+            if (particleAnimationId) { cancelAnimationFrame(particleAnimationId); particleAnimationId = null; }
+            particles = [];
+            if(particleCtx) particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+            particleCanvas.classList.remove('active');
+
+            currentScreen = 'start';
+            console.log("遊戲已初始化，顯示起始畫面");
+        }
+
+        function handleMarkerClick(markerElement) {
+            if (markerElement.classList.contains('completed')) return;
+            const markerId = markerElement.dataset.markerId;
+            const question = mapMarkerQuestionMap[markerId];
+
+            if (question) {
+                showQuizScreen(question, markerElement);
+            } else {
+                console.error("標記點未找到對應問題:", markerId);
+                markerElement.style.display = 'none';
+            }
+        }
+
+        function createParticle(x, y, color, type = 'square') { // Added type for particle shape
+            const baseSize = Math.random() * 6 + 2;
+            const speedYBase = Math.random() * 2.5 + 1;
+            const speedXBase = (Math.random() - 0.5) * 3;
+            let particle = {
+                x, y, size: baseSize, color,
+                speedY: speedYBase,
+                speedX: speedXBase,
+                life: Math.random() * 80 + 60,
+                initialLife: 0, // Will be set
+                rotation: Math.random() * 360,
+                rotationSpeed: (Math.random() - 0.5) * 5,
+                type: type
+            };
+            particle.initialLife = particle.life;
+
+            // Customize for player attack (moving upwards)
+            if (type === 'player-attack') {
+                particle.speedY = -(Math.random() * 3 + 2); // Move upwards fast
+                particle.speedX = (Math.random() - 0.5) * 1.5; // Less horizontal spread
+                particle.life = 40 + Math.random() * 20; // Shorter life for projectiles
+                particle.initialLife = particle.life;
+            }
+
+            particles.push(particle);
+        }
+
+        function animateParticles() {
+            if (!particleCanvas || !particleCtx || !particleCanvas.classList.contains('active')) return;
+            particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.y += p.speedY;
+                p.x += p.speedX;
+                p.life--;
+                // Make size fade more slowly initially for some effects
+                if (p.type === 'boss-defeat-explosion' || p.type === 'boss-defeat-start') {
+                     p.size *= (p.life / p.initialLife) > 0.5 ? 1 : (p.life / p.initialLife) * 2;
+                } else {
+                    p.size *= (p.life / p.initialLife);
+                }
+                p.rotation += p.rotationSpeed;
+
+                if (p.life <= 0 || p.size <= 0.5) { particles.splice(i, 1); continue; }
+
+                particleCtx.save();
+                particleCtx.translate(p.x, p.y);
+                particleCtx.rotate(p.rotation * Math.PI / 180);
+                particleCtx.fillStyle = p.color;
+                particleCtx.globalAlpha = Math.max(0, p.life / p.initialLife);
+
+                if (p.type === 'star' || (p.type !== 'player-attack' && Math.random() < 0.3)) { // Star shape
+                    particleCtx.beginPath();
+                    for (let j = 0; j < 5; j++) {
+                        particleCtx.lineTo(Math.cos((18 + j * 72) / 180 * Math.PI) * p.size, -Math.sin((18 + j * 72) / 180 * Math.PI) * p.size);
+                        particleCtx.lineTo(Math.cos((54 + j * 72) / 180 * Math.PI) * p.size * 0.5, -Math.sin((54 + j * 72) / 180 * Math.PI) * p.size * 0.5);
+                    }
+                    particleCtx.closePath();
+                    particleCtx.fill();
+                } else { // Square shape (default or player-attack)
+                    particleCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                }
+                particleCtx.restore();
+            }
+            particleCtx.globalAlpha = 1;
+            if (particles.length > 0) { particleAnimationId = requestAnimationFrame(animateParticles); }
+            else { particleCanvas.classList.remove('active'); particleAnimationId = null; }
+        }
+
+        function triggerParticles(type, count = 30, baseColor = '#FFFFFF', originElement = null, targetElement = null) { // Added targetElement (not fully used yet for complex paths)
+            console.log("觸發粒子:", type, "數量:", count, "顏色:", baseColor, "來源:", originElement ? originElement.id : "預設");
+            if (!particleCanvas || !gameWorld) return;
+            if (particles.length > 300) particles.splice(0, particles.length - 300); // Increased cap
+            particleCanvas.width = gameWorld.offsetWidth; particleCanvas.height = gameWorld.offsetHeight;
+
+            let originX = particleCanvas.width / 2;
+            let originY = particleCanvas.height / 2;
+            let particleShapeType = 'square'; // Default shape
+
+            try {
+                if (type === 'player-attack-boss') {
+                    originX = particleCanvas.width / 2; // From bottom center of screen
+                    originY = particleCanvas.height * 0.9;
+                    particleShapeType = 'player-attack'; // Use specific particle behavior
+                } else if (originElement) {
+                    const rect = originElement.getBoundingClientRect(); const gameWorldRect = gameWorld.getBoundingClientRect();
+                    originX = rect.left - gameWorldRect.left + rect.width / 2;
+                    originY = rect.top - gameWorldRect.top + rect.height / 2;
+                } else if (type === 'correct-answer' || type === 'incorrect-answer' || type === 'boss-miss-feedback') { // Renamed for clarity
+                    originY = particleCanvas.height * 0.75;
+                } else if (type === 'game-win' || type === 'final-reward' || type.startsWith('screen-change') || type === 'game-start') {
+                    originX = particleCanvas.width / 2; originY = particleCanvas.height / 2;
+                }
+
+                if (type === 'boss-defeat-explosion' || type === 'final-reward' || type === 'game-win') {
+                    particleShapeType = 'star'; // Make celebratory particles stars
+                }
+
+
+            } catch (e) { console.error("計算粒子原點時出錯:", e); }
+
+            for (let i = 0; i < count; i++) {
+                createParticle(originX, originY, baseColor, particleShapeType);
+            }
+            if (particles.length > 0 && !particleCanvas.classList.contains('active')) {
+                particleCanvas.classList.add('active');
+                animateParticles();
+            }
+        }
+
+        startGameButton.addEventListener('click', () => {
+            playTouchSound();
+            if (bgmGame && bgmGame.paused) { const p = bgmGame.play(); if (p !== undefined) { p.then(_ => { bgmGame.pause(); bgmGame.currentTime = 0; }).catch(e => {});}}
+            if (screens.start) screens.start.classList.remove('active');
+            if (screens.story) {
+                screens.story.classList.add('active'); screens.story.classList.remove('fade-out');
+                document.querySelectorAll('.story-text-box p').forEach(resetCssAnimation);
+                resetCssAnimation(continueButton);
+            }
+        });
+        continueButton.addEventListener('click', () => {
+            playTouchSound();
+            if (screens.story) {
+                screens.story.classList.add('fade-out');
+                screens.story.addEventListener('transitionend', function handler() {
+                    if (screens.map) showScreen('map');
+                    triggerParticles('game-start', 80, '#FFD700', gameWorld);
+                    screens.story.removeEventListener('transitionend', handler);
+                }, { once: true });
+            }
+        });
+        closeFeedbackButton.addEventListener('click', () => { playTouchSound(); closeFeedback(); });
+
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>

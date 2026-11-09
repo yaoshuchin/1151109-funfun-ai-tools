@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ㄅㄆㄇ 森林派對 🎲 (耐玩升級版)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=GenWanMin+TW:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
+        :root { --bg-color: #fcfaf2; --text-color: #4A7F4A; --primary-color: #6a994e; --accent-color: #a7c957; --heart-red: #e5383b; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; overflow: hidden; margin: 0; }
+        body { background-color: var(--primary-color); font-family: 'Noto Sans TC', sans-serif; display: flex; justify-content: center; align-items: center; }
+        .game-world { width: 100%; height: 100%; max-width: 500px; max-height: 900px; background: var(--bg-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; opacity: 0; visibility: hidden; transition: opacity 0.4s ease-in-out, visibility 0.4s; }
+        .screen.active { opacity: 1; visibility: visible; }
+        
+        .btn { font-family: 'Noto Sans TC', sans-serif; font-weight: bold; font-size: clamp(18px, 4vw, 24px); padding: 12px 30px; border-radius: 50px; border: none; cursor: pointer; background-color: var(--primary-color); color: white; box-shadow: 0 4px #386641; transition: all 0.1s ease-in-out; margin: 10px; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px #386641; }
+        
+        #start-screen h1 { font-family: 'GenWanMin TW', serif; font-size: clamp(40px, 10vw, 50px); }
+        #level-select-screen { background: #a7c957; justify-content: flex-start; padding-top: 40px; }
+        #level-select-screen h2 { font-size: clamp(30px, 8vw, 40px); margin-bottom: 20px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .level-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        .level-btn { width: 120px; height: 120px; font-size: 24px; font-family: 'GenWanMin TW', serif; border-radius: 20px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; line-height: 1.2; }
+        .level-btn.locked { background: #aaa; color: #777; box-shadow: 0 4px #555; }
+        .level-btn .hearts { font-size: 18px; position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); }
+        .level-icon { font-size: 30px; margin-bottom: 5px; }
+        #reset-progress-btn { position: absolute; bottom: 10px; right: 10px; font-size: 14px; padding: 8px 15px; background-color: #c1121f; box-shadow: 0 4px #780000; }
+
+        #game-screen { justify-content: space-between; padding: 10px; }
+        .top-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
+        .lives { font-size: 24px; }
+        .progress-bar { flex-grow: 1; height: 15px; background: #e8e5d9; border-radius: 10px; overflow: hidden; margin: 0 15px; }
+        .progress-bar-inner { width: 0%; height: 100%; background: var(--accent-color); transition: width 0.3s; }
+        .top-buttons { display: flex; gap: 10px; }
+        .icon-btn { font-size: 20px; width: 35px; height: 35px; padding: 0; line-height: 35px; border-radius: 50%; background-color: #fca311; box-shadow: 0 4px #c37e0c; }
+
+        .quiz-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; flex-grow: 1; }
+        .question-image { width: clamp(150px, 30vh, 200px); height: clamp(150px, 30vh, 200px); object-fit: contain; margin-bottom: 20px; }
+        #interaction-area { display: flex; justify-content: center; align-items: center; position: relative; }
+        #char-display { font-family: 'GenWanMin TW', serif; font-size: clamp(100px, 25vw, 150px); margin-right: 20px; }
+        #bopomofo-answer { font-family: 'GenWanMin TW', serif; font-size: clamp(38px, 8vw, 45px); }
+        .keyboard { padding: 5px; background: rgba(255,255,255,0.7); border-radius: 10px; }
+        .bopomofo-group { margin-bottom: 5px; text-align: center; }
+        .bopomofo-btn { font-family: 'GenWanMin TW', serif; font-weight: bold; width: clamp(38px, 9.5vw, 50px); height: clamp(38px, 9.5vw, 50px); font-size: clamp(20px, 4.5vw, 26px); margin: 2px; }
+        #feedback-message { font-size: clamp(18px, 4vw, 22px); font-weight: bold; height: 30px; margin-top: 15px; }
+        .feedback-correct { color: var(--primary-color); }
+        .feedback-wrong { color: #e5383b; }
+        @keyframes celebrate { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        #interaction-area.correct { animation: celebrate 0.5s ease-in-out; }
+        #interaction-area.wrong { animation: shake 0.4s ease-in-out; }
+        .confetti { position: absolute; width: 8px; height: 15px; opacity: 1; animation: fall 2s ease-out forwards; }
+        @keyframes fall { to { transform: translateY(200px) rotate(360deg); opacity: 0; } }
+        #level-end-screen h2, #level-review-screen h2 { font-size: clamp(30px, 8vw, 40px); }
+        #level-end-hearts { font-size: clamp(30px, 8vw, 40px); margin: 10px 0; }
+        #level-end-hearts .heart { display: inline-block; color: #ddd; transition: color 0.3s; }
+        #level-end-hearts .heart.active { color: var(--heart-red); animation: heart-pop 0.5s ease-out; }
+        @keyframes heart-pop { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        
+        #level-review-screen { justify-content: space-between; }
+        #review-items-container { width: 100%; max-height: 60%; overflow-y: auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; }
+        .review-item { background: white; border-radius: 10px; padding: 10px; width: 150px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; }
+        .review-item.wrong { border-left: 5px solid #e5383b; }
+        .review-item.correct { border-left: 5px solid var(--primary-color); }
+        .review-text { font-family: 'GenWanMin TW', serif; font-size: 20px; text-align: left; }
+        .review-text span { display: block; font-size: 16px; color: #777; }
+        .review-icon { font-size: 30px; }
+        
+        .phonetic-block-wrapper { display: flex; align-items: center; } .phonetic-wrapper { position: relative; padding-top: 0.5em; } .light-tone-dot { position: absolute; top: 0; left: 50%; transform: translateX(-50%); } .phonetic-block-horizontal { display: flex; align-items: flex-start; } .phonetic-block-vertical { display: flex; flex-direction: column; align-items: center; line-height: 1; } .vowel-cluster { display: flex; flex-direction: column; justify-content: center; font-size: 0.8em; line-height: 1; margin-left: 2px; } .phonetic-block-vertical .vowel-cluster { margin-left: 0; } .tone-block { font-size: 0.8em; line-height: 1; margin-left: 5px; position: relative; top: 8px; }
+        @media (min-width: 600px) and (min-height: 600px) { .game-world { max-width: 95vw; max-height: 95vh; } .level-btn { width: 150px; height: 150px; font-size: 30px; } .level-icon { font-size: 40px; } .quiz-content { flex-direction: row; } .question-image { width: 30vh; height: 30vh; margin-right: 5vw; margin-bottom: 0; } }
+    </style>
+</head>
+<body>
+    <div class="game-world">
+        <!-- 畫面容器 -->
+        <div id="start-screen" class="screen active"><h1>ㄅㄆㄇ 森林派對</h1><p>準備好開始學習了嗎？</p><button id="start-game-btn" class="btn">開始冒險</button></div>
+        <div id="level-select-screen" class="screen"><h2>選擇關卡</h2><div id="level-buttons-container" class="level-buttons"></div><button id="reset-progress-btn" class="btn">重置進度</button></div>
+        <div id="game-screen" class="screen">
+            <div class="top-bar"><div id="lives-display" class="lives"></div><div class="progress-bar"><div id="progress-bar-inner"></div></div><div class="top-buttons"><button id="mute-btn" class="btn icon-btn">🔊</button><button id="quit-level-btn" class="btn icon-btn">↩️</button></div></div>
+            <div class="quiz-content">
+                <img id="question-image" src=""><div id="interaction-area"><div id="char-display"></div><div id="bopomofo-answer"></div></div><div id="feedback-message"></div>
+            </div>
+            <div class="keyboard">
+                <div class="bopomofo-group" id="consonants"></div><div class="bopomofo-group" id="vowels"></div><div class="bopomofo-group" id="tones"></div>
+                <button id="clear-btn" class="btn" style="font-size:18px; padding: 8px 20px;">清除</button><button id="check-btn" class="btn" style="font-size:18px; padding: 8px 20px;">檢查</button>
+            </div>
+        </div>
+        <div id="level-end-screen" class="screen"><h2 id="level-end-title"></h2><div id="level-end-hearts"><span class="heart">🤍</span><span class="heart">🤍</span><span class="heart">🤍</span></div><p id="level-end-message"></p><button id="review-btn" class="btn">學習回顧</button></div>
+        <div id="level-review-screen" class="screen"><h2>本關回顧</h2><div id="review-items-container"></div><div><button id="retry-level-btn" class="btn">再玩一次</button><button id="next-level-btn" class="btn">下一關</button><button id="back-to-map-btn" class="btn">回地圖</button></div></div>
+    </div>
+
+    <script>
+    // --- 【核心升級】擴充題庫 ---
+    const gameLevels = [
+        { name: "水果", icon: "🍎", questions: [ { char: '蘋', bopomofo: 'ㄆㄧㄥˊ', image: 'https://img.icons8.com/plasticine/200/apple.png' }, { char: '蕉', bopomofo: 'ㄐㄧㄠ', image: 'https://img.icons8.com/plasticine/200/banana.png' }, { char: '瓜', bopomofo: 'ㄍㄨㄚ', image: 'https://img.icons8.com/plasticine/200/watermelon.png' }, { char: '莓', bopomofo: 'ㄇㄟˊ', image: 'https://img.icons8.com/plasticine/200/strawberry.png' }, { char: '桃', bopomofo: 'ㄊㄠˊ', image: 'https://img.icons8.com/plasticine/200/peach.png' }, { char: '萄', bopomofo: 'ㄊㄠˊ', image: 'https://img.icons8.com/plasticine/200/grapes.png' }, { char: '橘', bopomofo: 'ㄐㄩˊ', image: 'https://img.icons8.com/plasticine/200/mandarin.png' }, { char: '梨', bopomofo: 'ㄌㄧˊ', image: 'https://img.icons8.com/plasticine/200/pear.png' }, { char: '檬', bopomofo: 'ㄇㄥˊ', image: 'https://img.icons8.com/plasticine/200/lemon.png' } ] },
+        { name: "動物", icon: "🐶", questions: [ { char: '貓', bopomofo: 'ㄇㄠ', image: 'https://img.icons8.com/plasticine/200/cat.png' }, { char: '狗', bopomofo: 'ㄍㄡˇ', image: 'https://img.icons8.com/plasticine/200/dog.png' }, { char: '兔', bopomofo: 'ㄊㄨˋ', image: 'https://img.icons8.com/plasticine/200/rabbit.png' }, { char: '魚', bopomofo: 'ㄩˊ', image: 'https://img.icons8.com/plasticine/200/fish.png' }, { char: '熊', bopomofo: 'ㄒㄩㄥˊ', image: 'https://img.icons8.com/plasticine/200/teddy-bear.png' }, { char: '虎', bopomofo: 'ㄏㄨˇ', image: 'https://img.icons8.com/plasticine/200/tiger.png' }, { char: '獅', bopomofo: 'ㄕ', image: 'https://img.icons8.com/plasticine/200/lion.png' }, { char: '象', bopomofo: 'ㄒㄧㄤˋ', image: 'https://img.icons8.com/plasticine/200/elephant.png' }, { char: '猴', bopomofo: 'ㄏㄡˊ', image: 'https://img.icons8.com/plasticine/200/monkey.png' }, { char: '鳥', bopomofo: 'ㄋㄧㄠˇ', image: 'https://img.icons8.com/plasticine/200/bird.png' } ] },
+        { name: "交通", icon: "🚗", questions: [ { char: '車', bopomofo: 'ㄔㄜ', image: 'https://img.icons8.com/plasticine/200/car.png' }, { char: '船', bopomofo: 'ㄔㄨㄢˊ', image: 'https://img.icons8.com/plasticine/200/boat.png' }, { char: '機', bopomofo: 'ㄐㄧ', image: 'https://img.icons8.com/plasticine/200/airplane-mode-on.png' }, { char: '火', bopomofo: 'ㄏㄨㄛˇ', image: 'https://img.icons8.com/plasticine/200/train.png' }, { char: '單', bopomofo: 'ㄉㄢ', image: 'https://img.icons8.com/plasticine/200/bicycle.png' }, { char: '公', bopomofo: 'ㄍㄨㄥ', image: 'https://img.icons8.com/plasticine/200/bus.png' }, { char: '卡', bopomofo: 'ㄎㄚˇ', image: 'https://img.icons8.com/plasticine/200/truck.png' } ] },
+        { name: "身體", icon: "✋", questions: [ { char: '頭', bopomofo: 'ㄊㄡˊ', image: 'https://img.icons8.com/plasticine/200/head.png' }, { char: '手', bopomofo: 'ㄕㄡˇ', image: 'https://img.icons8.com/plasticine/200/hand.png' }, { char: '脚', bopomofo: 'ㄐㄧㄠˇ', image: 'https://img.icons8.com/plasticine/200/foot.png' }, { char: '眼', bopomofo: 'ㄧㄢˇ', image: 'https://img.icons8.com/plasticine/200/visible.png' }, { char: '口', bopomofo: 'ㄎㄡˇ', image: 'https://img.icons8.com/plasticine/200/mouth.png' }, { char: '鼻', bopomofo: 'ㄅㄧˊ', image: 'https://img.icons8.com/plasticine/200/nose.png' }, { char: '耳', bopomofo: 'ㄦˇ', image: 'https://img.icons8.com/plasticine/200/ear.png' } ] },
+        { name: "家人", icon: "👨‍👩‍👧‍👦", questions: [ { char: '爸', bopomofo: 'ㄅㄚˋ', image: 'https://img.icons8.com/plasticine/200/father.png' }, { char: '媽', bopomofo: 'ㄇㄚ', image: 'https://img.icons8.com/plasticine/200/mother.png' }, { char: '哥', bopomofo: 'ㄍㄜ', image: 'https://img.icons8.com/plasticine/200/boy.png' }, { char: '姐', bopomofo: 'ㄐㄧㄝˇ', image: 'https://img.icons8.com/plasticine/200/girl.png' }, { char: '弟', bopomofo: 'ㄉㄧˋ', image: 'https://img.icons8.com/plasticine/200/baby-boy.png' }, { char: '妹', bopomofo: 'ㄇㄟˋ', image: 'https://img.icons8.com/plasticine/200/baby-girl.png' }, { char: '爺', bopomofo: 'ㄧㄝˊ', image: 'https://img.icons8.com/plasticine/200/grandfather.png' } ] },
+        { name: "學校", icon: "🏫", questions: [ { char: '書', bopomofo: 'ㄕㄨ', image: 'https://img.icons8.com/plasticine/200/book.png' }, { char: '筆', bopomofo: 'ㄅㄧˇ', image: 'https://img.icons8.com/plasticine/200/pen.png' }, { char: '尺', bopomofo: 'ㄔˇ', image: 'https://img.icons8.com/plasticine/200/ruler.png' }, { char: '桌', bopomofo: 'ㄓㄨㄛ', image: 'https://img.icons8.com/plasticine/200/desk.png' }, { char: '椅', bopomofo: 'ㄧˇ', image: 'https://img.icons8.com/plasticine/200/chair.png' }, { char: '燈', bopomofo: 'ㄉㄥ', image: 'https://img.icons8.com/plasticine/200/lamp.png' }, { char: '門', bopomofo: 'ㄇㄣˊ', image: 'https://img.icons8.com/plasticine/200/door.png' } ] }
+    ];
+    const bopomofoParts = { consonants: ['ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ','ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'], medials: ['ㄧ', 'ㄨ', 'ㄩ'], finals: ['ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ'], tones: ['ˊ', 'ˇ', 'ˋ', '˙'] };
+    const topSideConsonants = ['ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ']; const specialStackConsonants = ['ㄐ', 'ㄑ', 'ㄒ']; const allVowelsForButtons = [...new Set([...bopomofoParts.medials, ...bopomofoParts.finals])];
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const screens = { start: document.getElementById('start-screen'), levelSelect: document.getElementById('level-select-screen'), game: document.getElementById('game-screen'), levelEnd: document.getElementById('level-end-screen'), levelReview: document.getElementById('level-review-screen') };
+        const interactionArea = document.getElementById('interaction-area'); const livesDisplay = document.getElementById('lives-display'); const progressBarInner = document.getElementById('progress-bar-inner'); const questionImage = document.getElementById('question-image'); const charDisplay = document.getElementById('char-display'); const bopomofoAnswer = document.getElementById('bopomofo-answer'); const feedbackMessage = document.getElementById('feedback-message'); const levelSelectContainer = document.getElementById('level-buttons-container'); const resetButton = document.getElementById('reset-progress-btn'); const reviewBtn = document.getElementById('review-btn'); const reviewContainer = document.getElementById('review-items-container'); const muteBtn = document.getElementById('mute-btn');
+        let gameState = { unlockedLevels: 1, hearts: {} }; let currentLevelIndex = 0, lives = 3, currentQuestions = [], currentQuestionIndex = 0, correctAnswersInLevel = 0, userAnswer = '', isChecking = false, activeScreen = 'start', levelResults = [], isMuted = false;
+        let audioContext, bgmInterval;
+        const QUESTIONS_PER_LEVEL = 5;
+
+        function saveGameState() { localStorage.setItem('bopomofoPartyState', JSON.stringify(gameState)); }
+        function loadGameState() { const savedState = localStorage.getItem('bopomofoPartyState'); if (savedState) { gameState = JSON.parse(savedState); } }
+        function initAudio() { if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } }
+        function playNote(frequency, type = 'sine', duration = 0.1) { if (isMuted || !audioContext) return; try { const o = audioContext.createOscillator(), g = audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.type = type; o.frequency.setValueAtTime(frequency, audioContext.currentTime); g.gain.setValueAtTime(0.2, audioContext.currentTime); g.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration); o.start(); o.stop(audioContext.currentTime + duration); } catch (e) {} }
+        function playSound(type) { if (type === 'correct') playNote(600, 'sine', 0.5); else if (type === 'wrong') playNote(150, 'square', 0.2); else if (type === 'touch') playNote(440, 'triangle', 0.1); }
+        function toggleBgm() { if (isMuted || !audioContext) { clearInterval(bgmInterval); bgmInterval = null; return; } if (bgmInterval) return; const notes = [261, 293, 329, 349]; let noteIndex = 0; bgmInterval = setInterval(() => { playNote(notes[noteIndex % notes.length], 'sine', 0.3); noteIndex++; }, 500); }
+        function showScreen(screenId) { screens[activeScreen].classList.remove('active'); activeScreen = screenId; screens[activeScreen].classList.add('active'); }
+        function triggerConfetti() { for (let i = 0; i < 30; i++) { const c = document.createElement('div'); c.className = 'confetti'; c.style.left = `${Math.random()*100}%`; c.style.top = `${-20-Math.random()*20}px`; c.style.backgroundColor = `hsl(${Math.random()*360}, 100%, 50%)`; c.style.animationDelay = `${Math.random()*0.5}s`; interactionArea.appendChild(c); setTimeout(() => c.remove(), 2000); } }
+
+        function checkAnswer() {
+            if (isChecking) return; isChecking = true;
+            const correctAnswer = currentQuestions[currentQuestionIndex].bopomofo; const isCorrect = userAnswer === correctAnswer;
+            levelResults.push({ question: currentQuestions[currentQuestionIndex], isCorrect: isCorrect });
+            if (isCorrect) {
+                playSound('correct'); correctAnswersInLevel++;
+                feedbackMessage.textContent = '答對了！太棒了！'; feedbackMessage.className = 'feedback-correct';
+                interactionArea.classList.add('correct'); triggerConfetti();
+                progressBarInner.style.width = `${(correctAnswersInLevel / currentQuestions.length) * 100}%`;
+                setTimeout(() => { interactionArea.classList.remove('correct'); currentQuestionIndex++; loadQuestion(); }, 2000);
+            } else {
+                playSound('wrong'); lives--; updateLivesDisplay();
+                feedbackMessage.textContent = `差一點點！是 ${correctAnswer}`; feedbackMessage.className = 'feedback-wrong';
+                interactionArea.classList.add('wrong');
+                setTimeout(() => {
+                    interactionArea.classList.remove('wrong');
+                    if (lives <= 0) { endLevel(false); } else { currentQuestionIndex++; loadQuestion(); }
+                }, 2500);
+            }
+        }
+        
+        function updateLevelSelectScreen() {
+            levelSelectContainer.innerHTML = '';
+            gameLevels.forEach((level, index) => {
+                const isLocked = (index + 1) > gameState.unlockedLevels;
+                const btn = document.createElement('button'); btn.className = `btn level-btn ${isLocked ? 'locked' : ''}`; btn.disabled = isLocked;
+                const hearts = gameState.hearts[index + 1] || 0;
+                btn.innerHTML = `<div class="level-icon">${level.icon}</div><div>${level.name}</div><div class="hearts">${'❤️'.repeat(hearts)}${'🤍'.repeat(3 - hearts)}</div>`;
+                if (!isLocked) { btn.onclick = () => { playSound('touch'); startGame(index); }; }
+                levelSelectContainer.appendChild(btn);
+            });
+        }
+        
+        function populateReviewScreen() {
+            reviewContainer.innerHTML = '';
+            levelResults.forEach(result => {
+                const item = document.createElement('div'); item.className = `review-item ${result.isCorrect ? 'correct' : 'wrong'}`;
+                item.innerHTML = `<div class="review-text">${result.question.char}<span>${result.question.bopomofo}</span></div><div class="review-icon">${result.isCorrect ? '✅' : '❌'}</div>`;
+                reviewContainer.appendChild(item);
+            });
+            const nextBtn = screens.levelReview.querySelector('#next-level-btn');
+            const wasSuccess = lives > 0;
+            nextBtn.style.display = (wasSuccess && currentLevelIndex + 1 < gameLevels.length) ? 'inline-block' : 'none';
+        }
+
+        function endLevel(isSuccess) {
+            const endScreen = screens.levelEnd, title = endScreen.querySelector('h2'), heartsDisplay = endScreen.querySelectorAll('.heart'), msg = endScreen.querySelector('p');
+            const heartsEarned = isSuccess ? lives : 0;
+            if (isSuccess) {
+                title.textContent = "挑戰成功！";
+                const oldHearts = gameState.hearts[currentLevelIndex + 1] || 0; gameState.hearts[currentLevelIndex + 1] = Math.max(oldHearts, heartsEarned);
+                msg.textContent = heartsEarned === 3 ? "完美通關！太厲害了！" : "你真棒！";
+                if (heartsEarned > 0 && (currentLevelIndex + 2 > gameState.unlockedLevels) && (currentLevelIndex + 1 < gameLevels.length)) { gameState.unlockedLevels = currentLevelIndex + 2; }
+            } else {
+                title.textContent = "挑戰失敗"; msg.textContent = "別灰心，看看哪裡答錯了！";
+            }
+            heartsDisplay.forEach((heart, i) => { heart.classList.remove('active'); heart.textContent = '🤍'; if (i < heartsEarned) { setTimeout(() => { heart.classList.add('active'); heart.textContent = '❤️'; }, i * 300); } });
+            saveGameState(); updateLevelSelectScreen(); showScreen('levelEnd');
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length) { endLevel(true); return; }
+            userAnswer = ''; isChecking = false; feedbackMessage.textContent = ''; updateAnswerDisplay();
+            const q = currentQuestions[currentQuestionIndex]; questionImage.src = q.image; charDisplay.textContent = q.char;
+        }
+        function startGame(levelIndex) { 
+            currentLevelIndex = levelIndex; lives = 3; levelResults = []; correctAnswersInLevel = 0;
+            const fullQuestionPool = gameLevels[levelIndex].questions;
+            currentQuestions = [...fullQuestionPool].sort(() => 0.5 - Math.random()).slice(0, QUESTIONS_PER_LEVEL);
+            currentQuestionIndex = 0; progressBarInner.style.width = '0%'; 
+            updateLivesDisplay(); loadQuestion(); showScreen('game'); 
+        }
+        function updateLivesDisplay() { livesDisplay.textContent = '❤️'.repeat(lives); }
+        function parseBopomofo(str) { const p = { c: '', m: '', f: '', t: '' }; let r = str; for (const t of bopomofoParts.tones) { if (r.includes(t)) { p.t = t; r = r.replace(t, ''); break; } } if (r.length > 0 && bopomofoParts.consonants.includes(r[0])) { p.c = r[0]; r = r.substring(1); } if (r.length > 0 && bopomofoParts.medials.includes(r[0])) { p.m = r[0]; r = r.substring(1); } p.f = r; return p; }
+        function updateAnswerDisplay() { const p = parseBopomofo(userAnswer); let blockHTML = ''; const cH = p.c ? `<div class="consonant">${p.c}</div>` : ''; const vH = (p.m || p.f) ? `<div class="vowel-cluster">${p.m ? `<div class="medial">${p.m}</div>` : ''}${p.f ? `<div class="final">${p.f}</div>` : ''}</div>` : ''; if (specialStackConsonants.includes(p.c)) { const all = [p.c, p.m, p.f].filter(Boolean).join('<br>'); blockHTML = `<div class="phonetic-block-vertical">${all}</div>`; } else if (topSideConsonants.includes(p.c)) { blockHTML = `<div class="phonetic-block-vertical">${cH}${vH}</div>`; } else { blockHTML = `<div class="phonetic-block-horizontal">${cH}${vH}</div>`; } let finalHTML; if (p.t === '˙') { finalHTML = `<div class="phonetic-wrapper"><div class="light-tone-dot">˙</div>${blockHTML}</div>`; } else { const tH = p.t ? `<div class="tone-block">${p.t}</div>` : ''; finalHTML = `<div class="phonetic-block-wrapper">${blockHTML}${tH}</div>`; } bopomofoAnswer.innerHTML = finalHTML; }
+        function getSymbolType(s) { if (bopomofoParts.consonants.includes(s)) return 'consonant'; if (bopomofoParts.tones.includes(s)) return 'tone'; if (bopomofoParts.medials.includes(s)) return 'medial'; if (bopomofoParts.finals.includes(s)) return 'final'; return null; }
+        function createKeyboard() { const groups = { consonants: bopomofoParts.consonants, vowels: allVowelsForButtons, tones: bopomofoParts.tones }; for (const group in groups) { const container = document.getElementById(group); groups[group].forEach(symbol => { const btn = document.createElement('button'); btn.className = 'bopomofo-btn'; btn.textContent = symbol; btn.onclick = () => { playSound('touch'); let p = parseBopomofo(userAnswer); const type = getSymbolType(symbol); if (type === 'consonant') p.c = symbol; else if (type === 'tone') p.t = symbol; else if (type === 'medial') p.m = symbol; else if (type === 'final') p.f = symbol; userAnswer = p.c + p.m + p.f + p.t; updateAnswerDisplay(); }; container.appendChild(btn); }); } }
+        
+        const allButtons = document.querySelectorAll('.btn');
+        allButtons.forEach(btn => btn.addEventListener('click', () => playSound('touch')));
+        document.getElementById('start-game-btn').addEventListener('click', () => { initAudio(); toggleBgm(); updateLevelSelectScreen(); showScreen('levelSelect'); });
+        reviewBtn.addEventListener('click', () => { populateReviewScreen(); showScreen('levelReview'); });
+        document.getElementById('back-to-map-btn').addEventListener('click', () => showScreen('levelSelect'));
+        document.getElementById('retry-level-btn').addEventListener('click', () => startGame(currentLevelIndex));
+        document.getElementById('next-level-btn').addEventListener('click', () => { if (currentLevelIndex + 1 < gameLevels.length) startGame(currentLevelIndex + 1); });
+        document.getElementById('check-btn').addEventListener('click', checkAnswer);
+        document.getElementById('clear-btn').addEventListener('click', () => { userAnswer = ''; updateAnswerDisplay(); });
+        document.getElementById('quit-level-btn').addEventListener('click', () => { if(confirm('確定要放棄這一關嗎？進度將不會儲存喔！')) { showScreen('levelSelect'); } });
+        resetButton.addEventListener('click', () => { if (confirm('確定要清除所有遊戲進度和成績嗎？')) { gameState = { unlockedLevels: 1, hearts: {} }; saveGameState(); updateLevelSelectScreen(); } });
+        muteBtn.addEventListener('click', () => { isMuted = !isMuted; muteBtn.textContent = isMuted ? '🔇' : '🔊'; toggleBgm(); });
+
+        loadGameState();
+        createKeyboard();
+    });
+    </script>
+</body>
+</html>

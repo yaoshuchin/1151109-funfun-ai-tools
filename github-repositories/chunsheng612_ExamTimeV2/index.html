@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考試倒數計時器 v4.2 - 類比時鐘版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        :root {
+            --primary-color: #007AFF;
+            --card-bg: rgba(255, 255, 255, 0.65);
+            --card-border: rgba(255, 255, 255, 0.3);
+            --text-color-primary: #1d1d1f;
+            --text-color-secondary: #3c3c43;
+            --input-bg: rgba(235, 235, 240, 0.7);
+            --danger-color: #FF3B30;
+            --clock-face-color: rgba(255, 255, 255, 0.1);
+            --hand-color: #fff;
+            --second-hand-color: #FF9F0A; /* 質感橙色秒針 */
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            color: var(--text-color-primary);
+            -webkit-font-smoothing: antialiased;
+            background-image: url('1.png'); /* 請確保有背景圖 */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            overflow: hidden; 
+        }
+
+        /* --- 基礎 UI 元件 --- */
+        .glass-box {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        button { cursor: pointer; border: none; font-weight: 600; padding: 12px 20px; border-radius: 10px; transition: 0.2s; }
+        .btn-primary { background: var(--primary-color); color: #fff; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: #e5e5ea; color: #333; }
+
+        /* --- 設定畫面 --- */
+        .app-screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        .app-screen.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        #setup-screen { overflow-y: auto; padding: 40px 20px; }
+        .container { max-width: 700px; margin: 0 auto; padding-bottom: 50px; }
+        .header h1 { text-align: center; color: #fff; margin-bottom: 30px; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        
+        .setup-card { background: rgba(255, 255, 255, 0.75); padding: 30px; border-radius: 20px; color: #333; text-shadow: none; }
+        .control-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 10px; background: rgba(255,255,255,0.8); margin-bottom: 10px; }
+        .attendance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .controls-grid { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end; }
+        .time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .time-group { display: flex; gap: 5px; }
+
+        #schedule-list { margin-top: 20px; max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .exam-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 15px; border-radius: 10px; }
+        .main-actions { display: flex; gap: 15px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
+        .main-actions button { flex: 1; }
+
+        /* --- 倒數畫面 (看板佈局) --- */
+        #countdown-screen { padding: 30px; display: none; height: 100vh; width: 100vw; box-sizing: border-box; }
+        #countdown-screen.active { display: flex; }
+
+        .split-layout { display: grid; grid-template-columns: 350px 1fr; gap: 25px; width: 100%; height: 100%; max-width: 1600px; margin: 0 auto; }
+
+        /* --- 左側面板：時程表 + 時鐘 --- */
+        .left-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .panel-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); font-size: 1.3em; font-weight: 700; text-align: center; background: rgba(0,0,0,0.1); }
+        
+        .schedule-scroll-area { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .schedule-scroll-area::-webkit-scrollbar { width: 6px; }
+        .schedule-scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+        /* 時程卡片樣式 */
+        .v-schedule-item { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 15px; position: relative; transition: all 0.3s; }
+        .v-schedule-item.active { background: rgba(255, 255, 255, 0.35); border-color: #fff; transform: scale(1.03); box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 10; }
+        .v-schedule-item.past { opacity: 0.5; filter: grayscale(0.8); }
+        .v-time { font-size: 0.9em; opacity: 0.8; display: block; margin-bottom: 5px; }
+        .v-subject { font-size: 1.4em; font-weight: 700; line-height: 1.2; }
+        .v-status { position: absolute; top: 15px; right: 15px; font-size: 0.8em; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(0,0,0,0.2); }
+        .active .v-status { background: #34C759; }
+
+        /* --- 類比時鐘 (Analog Clock) --- */
+        .analog-clock-container {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.05);
+        }
+
+        .clock {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--clock-face-color);
+            border: 2px solid rgba(255,255,255,0.4);
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .clock-face { position: relative; width: 100%; height: 100%; transform: translateY(-3px); /* Optical correction */ }
+
+        .hand {
+            width: 50%;
+            right: 50%;
+            height: 6px;
+            background: var(--hand-color);
+            position: absolute;
+            top: 50%;
+            border-radius: 6px;
+            transform-origin: 100%;
+            transform: rotate(90deg);
+            transition-timing-function: cubic-bezier(0.1, 2.7, 0.58, 1);
+        }
+
+        .hand-hour { height: 6px; width: 30%; z-index: 3; }
+        .hand-min { height: 4px; width: 40%; z-index: 4; }
+        .hand-second { height: 2px; background: var(--second-hand-color); width: 45%; z-index: 5; }
+        
+        .clock-center {
+            position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10;
+        }
+
+        /* 刻度線 */
+        .marker { position: absolute; background: rgba(255,255,255,0.6); width: 2px; height: 10px; left: 50%; margin-left: -1px; top: 5px; transform-origin: 50% 85px; }
+        .marker.thick { width: 4px; height: 14px; margin-left: -2px; background: #fff; }
+
+        /* --- 右側面板 --- */
+        .right-panel { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; }
+        .clock-section { margin-bottom: 4vh; text-align: center; }
+        #current-time-digital { font-size: 4em; font-weight: 600; font-family: 'Inter', monospace; margin: 0; line-height: 1; }
+        .attendance-capsule { display: inline-flex; gap: 30px; background: rgba(0,0,0,0.2); padding: 10px 30px; border-radius: 50px; margin-top: 15px; font-size: 1.2em; }
+        .att-num { font-weight: 700; font-size: 1.4em; margin-left: 8px; }
+
+        .countdown-section { text-align: center; width: 100%; }
+        #countdown-label { font-size: 2em; opacity: 0.9; margin-bottom: 10px; }
+        #next-subject { font-size: clamp(3em, 6vw, 5em); font-weight: 800; margin: 0 0 20px; line-height: 1.1; }
+        .timer-huge { font-family: 'Inter', monospace; font-size: clamp(5em, 15vw, 10em); font-weight: 900; line-height: 1; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 30px; display: inline-block; }
+
+        /* 按鈕們 */
+        #discrete-setup-btn { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); padding: 10px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+        #discrete-setup-btn:hover { background: rgba(255, 255, 255, 0.9); color: var(--primary-color); transform: rotate(90deg); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        #fullscreen-btn { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.2); border-radius: 50%; padding: 10px; color: #fff; }
+
+        /* RWD */
+        @media (max-width: 900px) {
+            .split-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+            .left-panel { height: auto; max-height: 35vh; }
+            .schedule-scroll-area { flex-direction: row; overflow-x: auto; }
+            .v-schedule-item { min-width: 160px; }
+            .analog-clock-container { display: none; } /* 手機版空間不足時隱藏類比時鐘，保留數位 */
+            .timer-huge { font-size: 20vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 設定畫面 -->
+    <div id="setup-screen" class="app-screen active">
+        <div class="container">
+            <div class="header"><h1>考場倒數計時器 v4.2</h1></div>
+            <div class="setup-card">
+                <h2>1. 人數設定</h2>
+                <div class="attendance-grid">
+                    <div class="control-group"><label>應到人數</label><input type="number" id="expected-count" placeholder="0" min="0"></div>
+                    <div class="control-group"><label>實到人數</label><input type="number" id="actual-count" placeholder="0" min="0"></div>
+                </div>
+                <h2>2. 考試時程</h2>
+                <div class="controls-grid">
+                    <div class="control-group"><label>科目名稱</label><input type="text" id="subject-input" placeholder="例：數學"></div>
+                    <div class="control-group" style="grid-column: span 2;">
+                         <div class="time-inputs">
+                            <div class="control-group"><label>開始</label><div class="time-group"><select id="start-hour-select"></select><select id="start-minute-select"></select></div></div>
+                            <div class="control-group"><label>結束</label><div class="time-group"><select id="end-hour-select"></select><select id="end-minute-select"></select></div></div>
+                        </div>
+                    </div>
+                    <button id="add-exam-btn" class="btn-primary" style="grid-column: span 2;">新增科目</button>
+                </div>
+                <div id="schedule-list"></div>
+                <div class="main-actions">
+                    <button id="clear-schedule-btn" class="btn-secondary">清空列表</button>
+                    <button id="start-countdown-btn" class="btn-primary" disabled>進入倒數看板</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 倒數畫面 (看板模式) -->
+    <div id="countdown-screen" class="app-screen">
+        <button id="discrete-setup-btn" title="返回設定"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+
+        <div class="split-layout">
+            <!-- 左側：時程表 + 類比時鐘 -->
+            <div class="glass-box left-panel">
+                <div class="panel-header">今日考程</div>
+                <div class="schedule-scroll-area" id="vertical-schedule-list"></div>
+                
+                <!-- 新增：類比時鐘容器 -->
+                <div class="analog-clock-container">
+                    <div class="clock">
+                        <div class="clock-face" id="clock-markers"></div>
+                        <div class="hand hand-hour" id="hour-hand"></div>
+                        <div class="hand hand-min" id="min-hand"></div>
+                        <div class="hand hand-second" id="second-hand"></div>
+                        <div class="clock-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：資訊區 -->
+            <div class="glass-box right-panel">
+                <div class="clock-section">
+                    <h1 id="current-time-digital">00:00:00</h1>
+                    <div class="attendance-capsule">
+                        <span>應到 <span id="disp-expected" class="att-num">--</span></span>
+                        <span style="opacity:0.3">|</span>
+                        <span>實到 <span id="disp-actual" class="att-num">--</span></span>
+                    </div>
+                </div>
+                <div class="countdown-section">
+                    <div id="countdown-label">準備開始</div>
+                    <div id="next-subject">--</div>
+                    <div class="timer-huge" id="countdown-timer">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <button id="fullscreen-btn" title="全螢幕"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:#fff"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elements
+            const screens = document.querySelectorAll('.app-screen');
+            const subjectInput = document.getElementById('subject-input');
+            const startHourSelect = document.getElementById('start-hour-select');
+            const startMinuteSelect = document.getElementById('start-minute-select');
+            const endHourSelect = document.getElementById('end-hour-select');
+            const endMinuteSelect = document.getElementById('end-minute-select');
+            const expectedInput = document.getElementById('expected-count');
+            const actualInput = document.getElementById('actual-count');
+            const addExamBtn = document.getElementById('add-exam-btn');
+            const clearScheduleBtn = document.getElementById('clear-schedule-btn');
+            const startCountdownBtn = document.getElementById('start-countdown-btn');
+            const discreteSetupBtn = document.getElementById('discrete-setup-btn');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const scheduleList = document.getElementById('schedule-list');
+            const verticalScheduleList = document.getElementById('vertical-schedule-list');
+            const currentTimeDigital = document.getElementById('current-time-digital');
+            const countdownLabel = document.getElementById('countdown-label');
+            const nextSubjectDisplay = document.getElementById('next-subject');
+            const countdownTimerDisplay = document.getElementById('countdown-timer');
+            const dispExpected = document.getElementById('disp-expected');
+            const dispActual = document.getElementById('disp-actual');
+            
+            // Analog Clock Elements
+            const hourHand = document.getElementById('hour-hand');
+            const minHand = document.getElementById('min-hand');
+            const secondHand = document.getElementById('second-hand');
+            const clockMarkers = document.getElementById('clock-markers');
+
+            let schedule = [];
+            let timerInterval = null;
+            const padZero = (num) => num.toString().padStart(2, '0');
+
+            // --- Init Markers for Analog Clock ---
+            const initClockFace = () => {
+                for(let i = 0; i < 12; i++) {
+                    const marker = document.createElement('div');
+                    marker.className = `marker ${i % 3 === 0 ? 'thick' : ''}`;
+                    marker.style.transform = `rotate(${i * 30}deg)`;
+                    clockMarkers.appendChild(marker);
+                }
+            };
+            initClockFace();
+
+            const populateTimeSelector = (hourEl, minuteEl) => {
+                for (let i = 0; i < 24; i++) hourEl.add(new Option(padZero(i), i));
+                for (let i = 0; i < 60; i += 5) minuteEl.add(new Option(padZero(i), i));
+            };
+
+            const renderSetupList = () => {
+                scheduleList.innerHTML = '';
+                schedule.sort((a, b) => a.startTime - b.startTime);
+                if (schedule.length === 0) scheduleList.innerHTML = `<p style="text-align:center; color:#888;">暫無時程</p>`;
+                else {
+                    schedule.forEach(exam => {
+                        const item = document.createElement('div');
+                        item.className = 'exam-item';
+                        const timeStr = `${padZero(exam.startTime.getHours())}:${padZero(exam.startTime.getMinutes())} - ${padZero(exam.endTime.getHours())}:${padZero(exam.endTime.getMinutes())}`;
+                        item.innerHTML = `<div><strong>${exam.subject}</strong> <span style="color:#666; font-size:0.9em; margin-left:10px;">${timeStr}</span></div><button class="delete-exam-btn" data-id="${exam.id}" style="color:var(--danger-color);background:none;">&times;</button>`;
+                        scheduleList.appendChild(item);
+                    });
+                }
+                startCountdownBtn.disabled = schedule.length === 0;
+                clearScheduleBtn.disabled = schedule.length === 0;
+            };
+
+            const renderVerticalSchedule = () => {
+                verticalScheduleList.innerHTML = '';
+                const now = new Date();
+                schedule.forEach(exam => {
+                    const el = document.createElement('div');
+                    el.className = 'v-schedule-item';
+                    let statusText = "未開始";
+                    if (now >= exam.endTime) { el.classList.add('past'); statusText = "已結束"; }
+                    else if (now >= exam.startTime && now < exam.endTime) { el.classList.add('active'); statusText = "進行中"; }
+                    
+                    const timeStr = `${padZero(exam.startTime.getHours())}:${padZero(exam.startTime.getMinutes())} - ${padZero(exam.endTime.getHours())}:${padZero(exam.endTime.getMinutes())}`;
+                    el.innerHTML = `<span class="v-status">${statusText}</span><span class="v-time">${timeStr}</span><div class="v-subject">${exam.subject}</div>`;
+                    verticalScheduleList.appendChild(el);
+                    if(el.classList.contains('active')) setTimeout(() => el.scrollIntoView({behavior: "smooth", block: "center"}), 100);
+                });
+            };
+
+            const addExam = () => {
+                const subject = subjectInput.value.trim();
+                if (!subject) { alert('請輸入科目'); return; }
+                const getSelectedTime = (hEl, mEl) => {
+                    const d = new Date();
+                    d.setHours(parseInt(hEl.value), parseInt(mEl.value), 0, 0);
+                    return d;
+                };
+                const startTime = getSelectedTime(startHourSelect, startMinuteSelect);
+                const endTime = getSelectedTime(endHourSelect, endMinuteSelect);
+                if (endTime <= startTime) { alert('結束時間需晚於開始時間'); return; }
+                schedule.push({ id: Date.now(), subject, startTime, endTime });
+                subjectInput.value = '';
+                renderSetupList();
+            };
+
+            const updateTimeAndClock = () => {
+                const now = new Date();
+                const s = now.getSeconds();
+                const m = now.getMinutes();
+                const h = now.getHours();
+
+                // Digital Clock
+                currentTimeDigital.textContent = `${padZero(h)}:${padZero(m)}:${padZero(s)}`;
+
+                // Analog Clock Rotation
+                const sDeg = ((s / 60) * 360) + 90;
+                const mDeg = ((m / 60) * 360) + ((s/60)*6) + 90;
+                const hDeg = ((h / 12) * 360) + ((m/60)*30) + 90;
+
+                secondHand.style.transform = `rotate(${sDeg}deg)`;
+                minHand.style.transform = `rotate(${mDeg}deg)`;
+                hourHand.style.transform = `rotate(${hDeg}deg)`;
+
+                // Schedule Logic
+                const currentExam = schedule.find(exam => now >= exam.startTime && now < exam.endTime);
+                const nextExam = schedule.find(exam => now < exam.startTime);
+                let label = "今日考試", subject = "全部結束", countdownTarget = null;
+
+                if (currentExam) { label = "距離考試結束"; subject = currentExam.subject; countdownTarget = currentExam.endTime; }
+                else if (nextExam) { label = "距離下一科"; subject = nextExam.subject; countdownTarget = nextExam.startTime; }
+                
+                countdownLabel.textContent = label;
+                nextSubjectDisplay.textContent = subject;
+
+                if (countdownTarget) {
+                    const diff = countdownTarget - now;
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    countdownTimerDisplay.textContent = `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+                } else { countdownTimerDisplay.textContent = "🎉"; }
+
+                renderVerticalSchedule();
+            };
+
+            const switchScreen = (screenId) => {
+                screens.forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId).classList.add('active');
+                if (screenId === 'countdown-screen') {
+                    dispExpected.textContent = expectedInput.value || '--';
+                    dispActual.textContent = actualInput.value || '--';
+                    updateTimeAndClock();
+                    renderVerticalSchedule();
+                    timerInterval = setInterval(updateTimeAndClock, 1000);
+                } else {
+                    clearInterval(timerInterval);
+                    if (document.fullscreenElement) document.exitFullscreen();
+                }
+            };
+
+            // Event Listeners
+            addExamBtn.addEventListener('click', addExam);
+            scheduleList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-exam-btn')) {
+                    schedule = schedule.filter(ex => ex.id !== parseInt(e.target.dataset.id));
+                    renderSetupList();
+                }
+            });
+            clearScheduleBtn.addEventListener('click', () => { if(confirm('確定清空？')) { schedule = []; renderSetupList(); } });
+            startCountdownBtn.addEventListener('click', () => switchScreen('countdown-screen'));
+            discreteSetupBtn.addEventListener('click', () => switchScreen('setup-screen'));
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                else if (document.exitFullscreen) document.exitFullscreen();
+            });
+
+            populateTimeSelector(startHourSelect, startMinuteSelect);
+            populateTimeSelector(endHourSelect, endMinuteSelect);
+            renderSetupList();
+        });
+    </script>
+</body>
+</html>

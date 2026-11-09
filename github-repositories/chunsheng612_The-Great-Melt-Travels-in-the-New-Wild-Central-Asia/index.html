@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>歷史大崩壞：東亞變形記</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #2b2b2b;
+            --page-width: 460px;  /* 單頁寬度 */
+            --page-height: 680px; /* 單頁高度 */
+            --duration: 1.2s;     /* 翻頁動畫時間 */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- 右下角浮水印 --- */
+        .ui-credits {
+            position: fixed;
+            bottom: 20px;
+            right: 25px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+            z-index: 1000;
+            text-align: right;
+            pointer-events: none;
+            font-family: 'Noto Serif TC', serif;
+            letter-spacing: 1px;
+        }
+
+        /* --- 書本舞台 --- */
+        .scene {
+            width: calc(var(--page-width) * 2); /* 舞台寬度是兩頁寬 */
+            height: var(--page-height);
+            perspective: 1500px; /* 3D 透視深度 */
+            position: relative;
+        }
+
+        /* 書本容器 */
+        .book {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        /* --- 左側基底 (版權頁) --- */
+        .left-base {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: var(--page-width);
+            height: 100%;
+            background: #fdfbf7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            border-radius: 4px 0 0 4px;
+            box-shadow: inset -5px 0 10px rgba(0,0,0,0.1);
+            z-index: 0; /* 在最底層 */
+        }
+
+        /* --- 右側基底 (封底) --- */
+        .right-base {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: var(--page-width);
+            height: 100%;
+            background: #eee;
+            border-radius: 0 4px 4px 0;
+            z-index: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #999;
+            box-shadow: inset 5px 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* --- 紙張樣式 --- */
+        .paper {
+            position: absolute;
+            width: var(--page-width);
+            height: 100%;
+            top: 0;
+            left: 50%; /* 錨點在中間書脊 */
+            transform-origin: left center; /* 以左邊緣為軸心旋轉 */
+            transform-style: preserve-3d;
+            transition: transform var(--duration) cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+        }
+
+        /* 翻頁狀態：翻過去就是旋轉 -180度 */
+        .paper.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        /* 紙張的正反面共用樣式 */
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-color: #fcfcfc;
+            backface-visibility: hidden; /* 背面不可見，這是關鍵 */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 正面 */
+        .front {
+            z-index: 2;
+            border-radius: 0 4px 4px 0; /* 圓角在右 */
+            box-shadow: inset 5px 0 10px rgba(0,0,0,0.05); /* 書脊陰影 */
+        }
+        
+        /* 背面 (預先轉 180度) */
+        .back {
+            transform: rotateY(180deg);
+            z-index: 1;
+            border-radius: 4px 0 0 4px; /* 圓角在左 */
+            box-shadow: inset -5px 0 10px rgba(0,0,0,0.05); /* 書脊陰影 */
+        }
+
+        /* 內容圖片 */
+        .content-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 15px; /* 白邊 */
+            box-sizing: border-box;
+            filter: multiply;
+        }
+        .cover-img {
+            padding: 0;
+            object-fit: cover;
+        }
+
+        /* --- 版權資訊樣式 --- */
+        .copyright-info {
+            text-align: center;
+            color: #555;
+            font-family: 'Noto Serif TC', serif;
+            padding: 20px;
+        }
+        .copyright-info h2 {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #8b0000;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        /* --- 控制列 --- */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            background: rgba(40, 40, 40, 0.9);
+            padding: 10px 25px;
+            border-radius: 30px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            z-index: 100;
+            border: 1px solid #555;
+        }
+
+        button {
+            background: #444;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover:not(:disabled) { background: #666; }
+        button:disabled { opacity: 0.3; cursor: default; }
+        
+        /* RWD: 手機版改回滑動模式，因為手機直式螢幕無法呈現左右翻頁的立體感 */
+        @media (max-width: 1000px) {
+            :root {
+                --page-width: 100vw;
+                --page-height: 80vh;
+            }
+            .scene { width: 100vw; perspective: none; }
+            .left-base, .right-base { display: none; }
+            
+            /* 手機版強制覆蓋樣式，改為堆疊切換 */
+            .paper {
+                left: 0;
+                transform-origin: center;
+                transition: transform 0.3s, opacity 0.3s;
+                opacity: 0;
+                pointer-events: none; /* 隱藏的頁面不互動 */
+            }
+            .paper.mobile-active {
+                opacity: 1;
+                pointer-events: auto;
+                transform: none !important; /* 移除 3D 翻轉 */
+                z-index: 10 !important;
+            }
+            .front { border-radius: 0; backface-visibility: visible; }
+            .back { display: none; } /* 手機版不顯示背面，我們用 JS 邏輯切換 */
+            .book { box-shadow: none; }
+            .ui-credits { bottom: 80px; text-align: center; width: 100%; right: 0; font-size: 0.75rem;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-credits">
+        作者：Spell Lin &nbsp;|&nbsp; 電子書製作：方方老師
+    </div>
+
+    <div class="scene">
+        <div class="book" id="book">
+            <!-- 
+               結構邏輯：
+               Left Base: 版權頁 (永遠在左邊底部)
+               Paper 1: Front=1.jpg(封面), Back=2.jpg
+               Paper 2: Front=3.jpg, Back=4.jpg
+               ...
+               Right Base: 封底 (永遠在右邊底部)
+            -->
+            
+            <!-- 左側基底：版權資訊 -->
+            <div class="left-base">
+                <div class="copyright-info">
+                    <h2>歷史大崩壞</h2>
+                    <p style="font-weight:bold;">作者：Spell Lin</p>
+                    <p>電子書製作：方方老師</p>
+                    <div style="margin-top:40px; font-size:0.8rem; color:#999;">
+                        © 2025 All Rights Reserved.<br>
+                        Classroom Educational Use Only
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側基底：封底 -->
+            <div class="right-base">
+                THE END
+            </div>
+
+            <!-- Papers will be injected here by JS -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="prevBtn" onclick="goPrev()">❮ 上一頁</button>
+        <span id="pageDisplay" style="min-width:60px; text-align:center;">Cover</span>
+        <button id="nextBtn" onclick="goNext()">下一頁 ❯</button>
+    </div>
+
+    <script>
+        const totalImages = 20;
+        const book = document.getElementById('book');
+        
+        // 我們需要的紙張數量 = 總頁數 / 2 (向上取整)
+        // Paper 1: F=1, B=2
+        // Paper 2: F=3, B=4 ...
+        const totalPapers = Math.ceil(totalImages / 2);
+        let currentPaper = 0; // 0 表示沒翻頁(封面在右), 1 表示翻了第1張...
+        
+        // 初始化：生成紙張
+        function init() {
+            let papersHTML = '';
+            
+            // 注意：為了正確的 Z-index 堆疊，在 DOM 中，
+            // 後面的元素會蓋住前面的。
+            // 為了讓 Paper 1 (封面) 蓋住 Paper 2，Paper 1 必須在 DOM 的最後面？
+            // 不，我們可以透過 CSS z-index 動態控制。
+            // 這裡我們先按順序生成。
+            
+            for (let i = 1; i <= totalPapers; i++) {
+                const frontImgIndex = (i * 2) - 1; // 1, 3, 5...
+                const backImgIndex = (i * 2);      // 2, 4, 6...
+                
+                // 圖片路徑
+                const frontSrc = `${frontImgIndex}.jpg`;
+                const backSrc = `${backImgIndex}.jpg`;
+                
+                // 封面特殊 class
+                const isCover = (i === 1) ? 'cover-img' : '';
+                
+                // 生成 HTML
+                // id="p1", "p2"...
+                let backContent = '';
+                if(backImgIndex <= totalImages) {
+                    backContent = `<img src="${backSrc}" class="content-img" alt="P${backImgIndex}">
+                                   <div style="position:absolute; bottom:15px; left:20px; color:#aaa; font-size:12px;">${backImgIndex}</div>`;
+                } else {
+                    backContent = `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:#ccc;">(空白)</div>`;
+                }
+
+                papersHTML += `
+                    <div class="paper" id="p${i}">
+                        <div class="front">
+                            <img src="${frontSrc}" class="content-img ${isCover}" alt="P${frontImgIndex}">
+                             ${ i===1 ? '' : `<div style="position:absolute; bottom:15px; right:20px; color:#aaa; font-size:12px;">${frontImgIndex}</div>` }
+                        </div>
+                        <div class="back">
+                            ${backContent}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 插入 HTML (除了基底)
+            // 為了不覆蓋基底，我們用 append
+            book.insertAdjacentHTML('beforeend', papersHTML);
+            
+            // 初始 Z-Index 設定
+            updateZIndexes();
+            checkMobileMode();
+        }
+
+        // 核心邏輯：控制每一張紙的層級
+        function updateZIndexes() {
+            // 遍歷每一張紙
+            for (let i = 1; i <= totalPapers; i++) {
+                const paper = document.getElementById(`p${i}`);
+                
+                // 如果這張紙已經翻過去了 (flipped)
+                if (currentPaper >= i) {
+                    paper.classList.add('flipped');
+                    // 翻過去的紙堆疊邏輯：
+                    // 第 1 張翻過去後在最下面，第 2 張翻過去疊在它上面
+                    // 所以 i 越大，z-index 越大
+                    paper.style.zIndex = i; 
+                } else {
+                    paper.classList.remove('flipped');
+                    // 沒翻過去的紙堆疊邏輯：
+                    // 第 1 張 (封面) 在最上面，第 2 張在下面
+                    // 所以 i 越小，z-index 越大
+                    // 我們用 totalPapers + 1 - i 來計算
+                    paper.style.zIndex = totalPapers + 1 - i;
+                }
+            }
+            updateControls();
+        }
+
+        function goNext() {
+            if (currentPaper < totalPapers) {
+                currentPaper++;
+                updateZIndexes();
+            }
+        }
+
+        function goPrev() {
+            if (currentPaper > 0) {
+                currentPaper--;
+                updateZIndexes();
+            }
+        }
+        
+        function updateControls() {
+            const disp = document.getElementById('pageDisplay');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (currentPaper === 0) {
+                disp.innerText = "封面";
+                prevBtn.disabled = true;
+                nextBtn.disabled = false;
+            } else {
+                // 當前翻開了 currentPaper 張
+                // 顯示的頁碼是：左邊是 currentPaper 的背面 (2*cp)，右邊是 (currentPaper+1) 的正面
+                const leftPage = currentPaper * 2;
+                const rightPage = currentPaper * 2 + 1;
+                
+                let text = `P ${leftPage}`;
+                if (rightPage <= totalImages) text += ` - ${rightPage}`;
+                else text += ` - END`;
+                
+                disp.innerText = text;
+                
+                prevBtn.disabled = false;
+                nextBtn.disabled = (currentPaper >= totalPapers);
+            }
+        }
+        
+        // --- 手機版邏輯 (因為手機直式螢幕不適合 3D 翻頁，改為切換顯示) ---
+        // 我們使用 CSS 的 .mobile-active 來控制
+        // 這裡需要做一點邏輯映射：
+        // Desktop: currentPaper = 1 (表示翻了第一張紙，看到 P2(左) 和 P3(右))
+        // Mobile: 一次看一張。我們需要一個 mobileIndex (1~20)
+        
+        let mobileIndex = 1;
+
+        function checkMobileMode() {
+            // 這個函數會被定期呼叫或在 resize 時呼叫
+            // 這裡簡單處理：綁定按鈕行為
+            const isMobile = window.innerWidth <= 1000;
+            const papers = document.querySelectorAll('.paper');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            if (isMobile) {
+                // 手機模式按鈕邏輯
+                prevBtn.onclick = () => {
+                    if (mobileIndex > 1) { mobileIndex--; updateMobileView(); }
+                };
+                nextBtn.onclick = () => {
+                    if (mobileIndex < totalImages) { mobileIndex++; updateMobileView(); }
+                };
+                updateMobileView();
+            } else {
+                // 電腦模式按鈕邏輯
+                prevBtn.onclick = goPrev;
+                nextBtn.onclick = goNext;
+                // 移除手機樣式
+                papers.forEach(p => p.classList.remove('mobile-active'));
+                updateZIndexes(); // 恢復 3D 狀態
+            }
+        }
+        
+        function updateMobileView() {
+            // 手機版：我们需要把所有紙張隱藏，只「改造」當前需要顯示的那張
+            // 這有點 tricky，因為我們的 DOM 結構是 paper > front/back
+            // 如果 mobileIndex = 1 (封面)，顯示 p1 的 front
+            // 如果 mobileIndex = 2，顯示 p1 的 back
+            // 如果 mobileIndex = 3，顯示 p2 的 front
+            
+            const papers = document.querySelectorAll('.paper');
+            papers.forEach(p => {
+                p.classList.remove('mobile-active');
+                p.style.zIndex = -1;
+                // 重置 transform (因為 desktop 可能翻過了)
+                p.style.transform = 'none'; 
+            });
+            
+            const targetPaperIndex = Math.ceil(mobileIndex / 2); // 第幾張紙
+            const isFront = (mobileIndex % 2 !== 0); // 奇數頁是正面
+            
+            const targetPaper = document.getElementById(`p${targetPaperIndex}`);
+            if (targetPaper) {
+                targetPaper.classList.add('mobile-active');
+                targetPaper.style.zIndex = 100;
+                
+                // 控制正反面顯示
+                const frontDiv = targetPaper.querySelector('.front');
+                const backDiv = targetPaper.querySelector('.back');
+                
+                if (isFront) {
+                    frontDiv.style.display = 'flex';
+                    backDiv.style.display = 'none';
+                    // 手機版我們不希望看到背面的 transform 180，所以要暫時移除
+                    frontDiv.style.transform = 'none';
+                } else {
+                    frontDiv.style.display = 'none';
+                    backDiv.style.display = 'flex';
+                    // 手機版背面不需要 rotateY(180)，因為我們沒有翻轉紙張，只是切換內容
+                    backDiv.style.transform = 'none';
+                }
+            }
+            
+            document.getElementById('pageDisplay').innerText = mobileIndex === 1 ? "封面" : `${mobileIndex} / ${totalImages}`;
+            document.getElementById('prevBtn').disabled = (mobileIndex <= 1);
+            document.getElementById('nextBtn').disabled = (mobileIndex >= totalImages);
+        }
+
+        // 啟動
+        init();
+        window.addEventListener('resize', checkMobileMode);
+        
+        // 鍵盤
+        document.addEventListener('keydown', (e) => {
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            if(e.key === "ArrowLeft" && !prevBtn.disabled) prevBtn.click();
+            if(e.key === "ArrowRight" && !nextBtn.disabled) nextBtn.click();
+        });
+
+    </script>
+</body>
+</html>
